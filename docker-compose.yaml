@@ -1,0 +1,37 @@
+services:
+  api-dev:
+    image: ai-artist-detector-dev:latest
+    build:
+      context: .
+      dockerfile: .docker/dev/Dockerfile
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./ai_artist_detector:/app/ai_artist_detector
+      - ./pyproject.toml:/app/pyproject.toml
+      - ./uv.lock:/app/uv.lock
+      - ./scripts:/app/scripts
+      - ./data:/app/data
+      - "./.docker/dev/Makefile:/app/Makefile:ro"
+      - "./config:/app/config:ro"
+      - uv_cache:/root/.cache/uv
+    environment:
+      CONFIG_PATH: "/app/config/local.yaml"
+      UV_CACHE_DIR: "/root/.cache/uv"
+
+  api-prod:
+    image: ai-artist-detector-prod:latest
+    build:
+      context: .
+      dockerfile: .docker/prod/Dockerfile
+    ports:
+      - "8080:8080"
+    volumes:
+      - "./config/local.yaml:/app/config/local.yaml:ro"
+      - "./config/local.yaml:/app/config/local.overrides.yaml:ro"
+      - ./data:/app/data
+    environment:
+      CONFIG_PATH: "/app/config/local.yaml"
+
+volumes:
+  uv_cache:

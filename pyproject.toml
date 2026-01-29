@@ -1,0 +1,123 @@
+[build-system]
+requires = ["setuptools>=80.10.2"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages]
+find = {}
+
+[project]
+name = "ai_artist_detector"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = "==3.14.*"
+dependencies = [
+    "click>=8.3.1",
+    "fastapi>=0.128.0",
+    "loguru>=0.7.3",
+    "pydantic>=2.12.5",
+    "pydantic-settings>=2.12.0",
+    "pyyaml>=6.0.3",
+    "requests>=2.32.5",
+    "uvicorn>=0.40.0",
+    "ytmusicapi>=1.11.4",
+]
+
+[dependency-groups]
+dev = [
+    "pyrefly>=0.50.0",
+    "ruff>=0.14.14",
+    "types-pyyaml>=6.0.12.20250915",
+    "vulture>=2.14",
+]
+
+[project.scripts]
+ai-artist-detector = "ai_artist_detector.cli_entry:cli_root"
+
+[tool.ruff]
+line-length = 120
+indent-width = 4
+
+[tool.ruff.format]
+quote-style = "single"
+indent-style = "space"
+docstring-code-format = true
+line-ending = "lf"
+
+[tool.ruff.lint.flake8-pytest-style]
+fixture-parentheses = true  # mypy default to `Any` if no parentheses
+
+[tool.ruff.lint]
+select = ["ALL"]
+
+ignore = [
+    "W191",  # https://docs.astral.sh/ruff/formatter/#conflicting-lint-rules
+    "E111",
+    "E114",
+    "E117",
+    "D206",
+    "D300",
+    "Q000",
+    "Q001",
+    "Q002",
+    "Q003",
+    "COM812",
+    "COM819",
+    "ISC001",
+    "ISC002",
+
+    "ANN",  # Type annotations handled by mypy
+
+    "D100",  # `Missing docstring in public module`
+    "D101",  # `Missing docstring in public class`
+    "D102",  # `Missing docstring in public method`
+    "D103",  # `Missing docstring in public function`
+    "D104",  # `Missing docstring in public package`
+    "D105",  # `Missing docstring in magic method`
+    "D107",  # `Missing docstring in __init__`
+    "D400",  # `First line should end with a period`
+    "D415",  # `First line should end with a period, question mark, or exclamation point`
+
+    "D203",  # `one-blank-line-before-class`, can conflict with formatter
+    "D211",  # `no-blank-line-before-class`, can conflict with formatter
+    "D212",  # `multi-line-summary-second-line`, incompatible with D213 `multi-line-summary-second-line`
+
+    "E402",  # `Module level import not at top of file`, handled by isort
+    "E501",  # `Line too long`, handled by black
+
+    "EXE002",  # `The file is executable but no shebang is present`
+
+    "FBT001",  # `Boolean-typed positional argument in function definition`
+
+    "FIX002",  # `Line contains TODO, consider resolving the issue`
+
+    "PLC0415",  #  `import` should be at the top-level of a file, handled by isort
+
+    "S101",  # `Use of `assert` detected`
+
+    "SIM118",  # `Use `key in dict` instead of `key in dict.keys()``
+
+    "TD002",  # `Missing author in TODO; try: `# TODO(<author_name>): ...` or `# TODO @<author_name>: ...``
+    "TD003",  # `Missing issue link for this TODO`
+]
+
+[tool.ruff.lint.flake8-type-checking]
+runtime-evaluated-base-classes = ["pydantic.BaseModel"]
+
+[tool.ruff.lint.pep8-naming]
+# Allow Pydantic's `@validator` decorator to trigger class method treatment.
+classmethod-decorators = ["classmethod", "pydantic.field_validator"]
+
+[tool.ruff.lint.per-file-ignores]
+"scripts/*" = ["INP001", "T201"]
+
+[tool.ruff.lint.isort]
+combine-as-imports = true
+force-sort-within-sections = false
+order-by-type = false
+
+[tool.vulture]
+ignore_names = ["model_config", "cls"]
+min_confidence = 100
+
+[tool.pyrefly]
