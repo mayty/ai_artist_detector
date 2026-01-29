@@ -1,0 +1,7 @@
+sources:
+  soul_over_ai:
+    source: https://raw.githubusercontent.com/xoundbyte/soul-over-ai/refs/heads/main/dist/artists.json
+    google_api_key: null # Specify in `config_override.yaml` for local development
+    file_location: /app/data/soul_over_ai.json
+    youtube_cache_location: /app/data/youtube_handles_mapping.json
+    youtube_music_cache_location: /app/data/youtube_music_aliases.json
