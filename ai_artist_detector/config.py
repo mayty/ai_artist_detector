@@ -1,10 +1,11 @@
+from functools import cached_property
 from pathlib import Path
 
-from pydantic import AnyHttpUrl, BaseModel as PydanticBaseModel, Field, field_validator
+from pydantic import AnyHttpUrl, BaseModel as PydanticBaseModel, Field
 from pydantic_settings import SettingsConfigDict
 from yaml import full_load
 
-from ai_artist_detector.constants import CONFIG_OVERRIDE_PATH, CONFIG_PATH, PROJECT_ROOT
+from ai_artist_detector.constants import CONFIG_OVERRIDE_PATH, CONFIG_PATH
 from ai_artist_detector.exceptions import (
     InvalidConfigTypeError,
 )
@@ -17,31 +18,46 @@ class BaseModel(PydanticBaseModel):
 
 class SoulOverAiConfig(BaseModel):
     source: AnyHttpUrl
-    google_api_key: str
-    file_location: Path = Field(default=PROJECT_ROOT / 'data' / 'soul_over_ai.json', validate_default=True)
-    youtube_cache_location: Path = Field(
-        default=PROJECT_ROOT / 'data' / 'youtube_handles_mapping.json', validate_default=True
-    )
-    youtube_music_cache_location: Path = Field(
-        default=PROJECT_ROOT / 'data' / 'youtube_music_aliases.json', validate_default=True
-    )
 
-    @field_validator('file_location', 'youtube_cache_location', 'youtube_music_cache_location', mode='after')
-    def validate_file_location(cls, v: Path) -> Path:
-        if not v.exists():
-            return v
-        if not v.is_file():
-            msg = f'Path {v} must be a file'
-            raise ValueError(msg)
-        return v
+
+class RedisConfig(BaseModel):
+    host: str = Field(default='localhost', min_length=1, validate_default=True)
+    port: int = Field(default=6379, ge=0, validate_default=True)
+    db: int = Field(default=0, ge=0, validate_default=True)
+
+
+class SqliteConfig(BaseModel):
+    file_location: Path
+
+    @cached_property
+    def resolved_file_location(self) -> str:
+        return str(self.file_location.resolve())
 
 
 class SourcesConfig(BaseModel):
     soul_over_ai: SoulOverAiConfig
 
 
+class YouTubeConfig(BaseModel):
+    api_key: str
+    host: str = Field(default='youtube.googleapis.com', min_length=1, validate_default=True)
+    channels_route: str = Field(default='/youtube/v3/channels', min_length=1, validate_default=True)
+    timeout_seconds: int = Field(default=10, ge=0, validate_default=True)
+
+    @cached_property
+    def channels_endpoint(self) -> str:
+        return f'https://{self.host.strip("/")}{self.channels_route.strip("/")}'
+
+
+class ExternalsConfig(BaseModel):
+    youtube: YouTubeConfig
+
+
 class AppConfig(BaseModel):
     sources: SourcesConfig
+    external: ExternalsConfig
+    redis: RedisConfig = Field(default_factory=RedisConfig)
+    sqlite: SqliteConfig
 
 
 def get_config() -> AppConfig:

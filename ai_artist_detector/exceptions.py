@@ -6,6 +6,4 @@ class ProjectError(Exception):
 class InvalidConfigTypeError(ProjectError, TypeError): ...
 
 
-class ChannelNotFoundError(ProjectError):
-    def __init__(self, handle: str) -> None:
-        self.handle = handle
+class RowNotFoundError(ProjectError): ...

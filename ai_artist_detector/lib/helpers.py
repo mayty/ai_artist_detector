@@ -1,10 +1,11 @@
 import asyncio
 import threading
+from datetime import datetime, timedelta, UTC
 from functools import wraps
-from typing import Any, Protocol, TYPE_CHECKING, TypeVar
+from typing import Any, cast, Protocol, TYPE_CHECKING, TypeVar
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Coroutine
+    from collections.abc import Awaitable, Callable, Coroutine
 
     class TextGenerator(Protocol):
         @property
@@ -65,3 +66,25 @@ def construct_routes[T](d: NestedDict[T]) -> dict[str, T]:
         result[f'/{key}'] = value
 
     return result
+
+
+def ttl_cache[**ParamSpec, Ret](
+    ttl: timedelta,
+) -> Callable[[Callable[ParamSpec, Awaitable[Ret]]], Callable[ParamSpec, Awaitable[Ret]]]:
+    def decorator(func: Callable[ParamSpec, Awaitable[Ret]]) -> Callable[ParamSpec, Awaitable[Ret]]:
+        checked_at: datetime | None = None
+        cached_value: Ret | None = None
+
+        async def wrapper(*args: ParamSpec.args, **kwargs: ParamSpec.kwargs) -> Ret:
+            nonlocal checked_at, cached_value
+            now = datetime.now(tz=UTC)
+
+            if checked_at is None or (now - checked_at) > ttl:
+                checked_at = now
+                cached_value = await func(*args, **kwargs)
+
+            return cast('Ret', cached_value)
+
+        return wrapper
+
+    return decorator

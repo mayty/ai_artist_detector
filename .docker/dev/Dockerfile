@@ -21,4 +21,8 @@ ENV PATH="${VIRTUAL_ENV}/bin:${PATH}"
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --start-interval=100ms --retries=3 \
   CMD curl -f http://localhost:${SERVER_PORT}/ping || exit 1
 
-CMD uv sync --active --no-managed-python && ai-artist-detector workers api-dev -p ${SERVER_PORT} -d
+COPY .docker/dev/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+ENTRYPOINT ["/entrypoint.sh"]
+
+CMD ai-artist-detector workers api-dev -p ${SERVER_PORT}

@@ -13,22 +13,23 @@ readme = "README.md"
 requires-python = "==3.14.*"
 dependencies = [
     "click>=8.3.1",
-    "fastapi>=0.128.0",
+    "fastapi>=0.128.1",
     "loguru>=0.7.3",
     "pydantic>=2.12.5",
     "pydantic-settings>=2.12.0",
     "pyyaml>=6.0.3",
+    "redis>=7.1.0",
     "requests>=2.32.5",
     "uvicorn>=0.40.0",
-    "ytmusicapi>=1.11.4",
+    "ytmusicapi>=1.11.5",
 ]
 
 [dependency-groups]
 dev = [
-    "pyrefly>=0.50.0",
-    "ruff>=0.14.14",
+    "pyrefly>=0.51.0",
+    "ruff>=0.15.0",
     "types-pyyaml>=6.0.12.20250915",
-    "vulture>=2.14",
+    "types-redis>=4.6.0.20241004",
 ]
 
 [project.scripts]
@@ -79,6 +80,7 @@ ignore = [
     "D415",  # `First line should end with a period, question mark, or exclamation point`
 
     "D203",  # `one-blank-line-before-class`, can conflict with formatter
+    "D205",  # 1 blank line required between summary line and description
     "D211",  # `no-blank-line-before-class`, can conflict with formatter
     "D212",  # `multi-line-summary-second-line`, incompatible with D213 `multi-line-summary-second-line`
 
@@ -91,9 +93,10 @@ ignore = [
 
     "FIX002",  # `Line contains TODO, consider resolving the issue`
 
-    "PLC0415",  #  `import` should be at the top-level of a file, handled by isort
+    "PLC0415",  # `import` should be at the top-level of a file, handled by isort
 
     "S101",  # `Use of `assert` detected`
+    "S608",  # Possible SQL injection vector through string-based query construction
 
     "SIM118",  # `Use `key in dict` instead of `key in dict.keys()``
 
@@ -115,9 +118,5 @@ classmethod-decorators = ["classmethod", "pydantic.field_validator"]
 combine-as-imports = true
 force-sort-within-sections = false
 order-by-type = false
-
-[tool.vulture]
-ignore_names = ["model_config", "cls"]
-min_confidence = 100
 
 [tool.pyrefly]
