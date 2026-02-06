@@ -1,5 +1,44 @@
 services:
+  ingest-data:
+    image: ai-artist-detector-dev:latest
+    volumes:
+      - ./ai_artist_detector:/app/ai_artist_detector
+      - ./pyproject.toml:/app/pyproject.toml
+      - ./uv.lock:/app/uv.lock
+      - ./data:/app/data
+      - "./config:/app/config:ro"
+      - uv_cache:/root/.cache/uv
+    environment:
+      CONFIG_PATH: "/app/config/local.yaml"
+      UV_CACHE_DIR: "/root/.cache/uv"
+    depends_on:
+      redis:
+        condition: service_healthy
+    command: ["ai-artist-detector", "ingest", "all"]
   api-dev:
+    image: ai-artist-detector-dev:latest
+    build:
+      context: .
+      dockerfile: .docker/dev/Dockerfile
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./ai_artist_detector:/app/ai_artist_detector
+      - ./pyproject.toml:/app/pyproject.toml
+      - ./uv.lock:/app/uv.lock
+      - ./data:/app/data
+      - "./config:/app/config:ro"
+      - uv_cache:/root/.cache/uv
+    environment:
+      CONFIG_PATH: "/app/config/local.yaml"
+      UV_CACHE_DIR: "/root/.cache/uv"
+    depends_on:
+      redis:
+        condition: service_healthy
+      ingest-data:
+        condition: service_completed_successfully
+
+  commands:
     image: ai-artist-detector-dev:latest
     build:
       context: .
@@ -32,6 +71,19 @@ services:
       - ./data:/app/data
     environment:
       CONFIG_PATH: "/app/config/local.yaml"
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  redis:
+    image: redis:8.4.0-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: [ "CMD-SHELL", "redis-cli ping | grep PONG" ]
+      interval: 1s
+      timeout: 3s
+      retries: 5
 
 volumes:
   uv_cache:

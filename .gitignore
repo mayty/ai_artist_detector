@@ -8,6 +8,6 @@ wheels/
 
 # Local files
 .idea
-data
+/data/
 local.mk
 config/local.overrides.yaml

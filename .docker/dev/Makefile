@@ -1,38 +1,27 @@
-.PHONY: ensure_venv
-ensure_venv:
-ifndef VIRTUAL_ENV
-	$(error) "Python virtual env must be active"
-endif
-	uv sync --active --no-managed-python
-
 .PHONY: stylecheck
-stylecheck: ensure_venv
+stylecheck:
 	ruff format --diff --check .
 
 .PHONY: style
-style: ensure_venv
+style:
 	ruff format .
 
 .PHONY: lintcheck
-lintcheck: ensure_venv
+lintcheck:
 	ruff check .
 
 .PHONY: lint
-lint: ensure_venv
+lint:
 	ruff check --fix --unsafe-fixes .
 
 .PHONY: typecheck
-typecheck: ensure_venv
+typecheck:
 	pyrefly check .
 
-.PHONY: deadcheck
-deadcheck: ensure_venv
-	vulture --sort-by-size ai_artist_detector
-
 .PHONY: check
-check: stylecheck lintcheck typecheck deadcheck
+check: stylecheck lintcheck typecheck
 
 .PHONY: update_deps
-update_deps: ensure_venv
+update_deps:
 	uv lock -U
 	python /app/scripts/bump_pyproject.py

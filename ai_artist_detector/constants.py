@@ -14,3 +14,7 @@ class ArtistStatuses(StrEnum):
     AI = auto()
     HUMAN = auto()
     UNKNOWN = auto()
+
+
+class RedisNamespaces(StrEnum):
+    VERDICTS = auto()
