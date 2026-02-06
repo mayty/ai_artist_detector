@@ -7,8 +7,9 @@ from ai_artist_detector.api.ai_artists import check_artist, check_artists_batch
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
 
-    HANDLER_TYPE = Callable[..., Awaitable[Response]]
-    HANDLERS_DICT = dict[str, HANDLER_TYPE | 'HANDLERS_DICT']
+    from ai_artist_detector.lib.helpers import NestedDict
+
+    type HANDLER_TYPE = Callable[..., Awaitable[Response]]
 
 
 async def ping() -> Response:
@@ -17,11 +18,11 @@ async def ping() -> Response:
     )
 
 
-GET_URLS: HANDLERS_DICT = {
+GET_URLS: NestedDict[HANDLER_TYPE] = {
     'ping': ping,
     'youtube': {'v1': {'artists': {'check': check_artist}}},
 }
 
-POST_URLS: HANDLERS_DICT = {
+POST_URLS: NestedDict[HANDLER_TYPE] = {
     'youtube': {'v1': {'artists': {'check': {'batch': check_artists_batch}}}},
 }

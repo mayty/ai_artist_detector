@@ -2,7 +2,7 @@ import asyncio
 import threading
 from datetime import datetime, timedelta, UTC
 from functools import wraps
-from typing import Any, cast, Protocol, TYPE_CHECKING, TypeVar
+from typing import Any, cast, Protocol, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable, Coroutine
@@ -50,8 +50,7 @@ def merge_dicts(merge_to: dict[object, object], overrides: dict[object, object])
         merge_to[key] = value
 
 
-T = TypeVar('T')
-NestedDict = dict[str, 'T | NestedDict[T]']
+type NestedDict[T] = dict[str, 'T | NestedDict[T]']
 
 
 def construct_routes[T](d: NestedDict[T]) -> dict[str, T]:
