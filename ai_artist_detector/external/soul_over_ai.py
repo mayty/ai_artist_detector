@@ -14,7 +14,7 @@ class SoulOverAiClient:
         self._raw_ytm_cache: dict[str, list[str]] | None = None
 
     def retrieve_ai_youtube_channels(self) -> dict[str, str]:
-        response = requests.get(str(self.config.source), timeout=10)
+        response = requests.get(str(self.config.source), timeout=self.config.timeout_seconds)
         response.raise_for_status()
 
         result: dict[str, str] = {}

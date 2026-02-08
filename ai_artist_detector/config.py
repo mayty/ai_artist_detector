@@ -16,10 +16,6 @@ class BaseModel(PydanticBaseModel):
     model_config = SettingsConfigDict(extra='forbid')
 
 
-class SoulOverAiConfig(BaseModel):
-    source: AnyHttpUrl
-
-
 class RedisConfig(BaseModel):
     host: str = Field(default='localhost', min_length=1, validate_default=True)
     port: int = Field(default=6379, ge=0, validate_default=True)
@@ -34,8 +30,22 @@ class SqliteConfig(BaseModel):
         return str(self.file_location.resolve())
 
 
+class SoulOverAiConfig(BaseModel):
+    source: AnyHttpUrl = Field(
+        default='https://raw.githubusercontent.com/xoundbyte/soul-over-ai/refs/heads/main/dist/artists.json',
+        validate_default=True,
+    )
+    timeout_seconds: int = Field(default=10, ge=0, validate_default=True)
+
+
+class IimuzykaTopConfig(BaseModel):
+    host: str = Field(default='iimuzyka.top', min_length=1, validate_default=True)
+    timeout_seconds: int = Field(default=10, ge=0, validate_default=True)
+
+
 class SourcesConfig(BaseModel):
-    soul_over_ai: SoulOverAiConfig
+    soul_over_ai: SoulOverAiConfig = Field(default_factory=SoulOverAiConfig)
+    iimuzyka_top: IimuzykaTopConfig = Field(default_factory=IimuzykaTopConfig)
 
 
 class YouTubeConfig(BaseModel):
@@ -46,7 +56,7 @@ class YouTubeConfig(BaseModel):
 
     @cached_property
     def channels_endpoint(self) -> str:
-        return f'https://{self.host.strip("/")}{self.channels_route.strip("/")}'
+        return f'https://{self.host.strip("/")}/{self.channels_route.strip("/")}'
 
 
 class ExternalsConfig(BaseModel):
@@ -54,7 +64,7 @@ class ExternalsConfig(BaseModel):
 
 
 class AppConfig(BaseModel):
-    sources: SourcesConfig
+    sources: SourcesConfig = Field(default_factory=SourcesConfig)
     external: ExternalsConfig
     redis: RedisConfig = Field(default_factory=RedisConfig)
     sqlite: SqliteConfig

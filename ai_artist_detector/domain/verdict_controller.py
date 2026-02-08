@@ -7,21 +7,42 @@ from ai_artist_detector.lib.helpers import ttl_cache
 
 if TYPE_CHECKING:
     from ai_artist_detector.data.redis.verdicts import VerdictsRepository
+    from ai_artist_detector.domain.data_source.iimuzyka_top import IimuzykaTopService
     from ai_artist_detector.domain.data_source.soul_over_ai import SoulOverAiService
 
 
 class VerdictControllerService:
-    def __init__(self, soul_over_ai_service: SoulOverAiService, verdicts_repository: VerdictsRepository) -> None:
+    def __init__(
+        self,
+        soul_over_ai_service: SoulOverAiService,
+        iimuzyka_top_service: IimuzykaTopService,
+        verdicts_repository: VerdictsRepository,
+    ) -> None:
         self.soul_over_ai_service = soul_over_ai_service
+        self.iimuzyka_top_service = iimuzyka_top_service
         self.verdicts_repository = verdicts_repository
 
         self._ai_artists: set[str] | None = None
         self._updated_at: datetime | None = None
 
     async def recalculate(self) -> None:
-        logger.info('RecalculatingVerdicts')
-        ai_artists = self.soul_over_ai_service.get_ai_artists()
-        logger.info('VerdictsRecalculated', count=len(ai_artists))
+        sources = {
+            'soul_over_ai': self.soul_over_ai_service,
+            'iimyzyka_top': self.iimuzyka_top_service,
+        }
+
+        ai_artists: set[str] = set()
+
+        for source, service in sources.items():
+            old_artists_count = len(ai_artists)
+            logger.info('RetrievingAiArtists', source=source)
+            retrieved_artists = service.get_ai_artists()
+            ai_artists |= retrieved_artists
+            logger.info(
+                'ArtistsRetrieved', count=len(retrieved_artists), added_count=len(ai_artists) - old_artists_count
+            )
+
+        logger.info('VerdictsRecalculated', total_count=len(ai_artists))
         await self.verdicts_repository.set_ai(ai_artists)
 
     async def _get_ai_updated_at(self) -> datetime | None:

@@ -6,10 +6,14 @@ from ytmusicapi import YTMusic
 from ai_artist_detector.config import AppConfig, get_config
 from ai_artist_detector.data.redis.verdicts import VerdictsRepository
 from ai_artist_detector.data.sqlite.connection_manager import SQLiteConnectionManager
+from ai_artist_detector.data.sqlite.iimuzyka_ids_mapping import IimuzykaIdsMappingRepository
 from ai_artist_detector.data.sqlite.youtube_handles_mapping import YouTubeHandlesRepository
 from ai_artist_detector.data.sqlite.youtube_music_aliases import YouTubeMusicAliasesRepository
+from ai_artist_detector.domain.data_source.iimuzyka_top import IimuzykaTopService
 from ai_artist_detector.domain.data_source.soul_over_ai import SoulOverAiService
 from ai_artist_detector.domain.verdict_controller import VerdictControllerService
+from ai_artist_detector.domain.youtube import YouTubeAdapterService
+from ai_artist_detector.external.iimuzyka_top import IimuzykaTopClient
 from ai_artist_detector.external.soul_over_ai import SoulOverAiClient
 
 __all__ = ('services',)
@@ -52,6 +56,10 @@ class Repositories:
     def youtube_music_aliases_repository(self) -> YouTubeMusicAliasesRepository:
         return YouTubeMusicAliasesRepository(connection_manager=core.sqlite_connection_manager)
 
+    @cached_property
+    def iimuzyka_ids_mapping_repository(self) -> IimuzykaIdsMappingRepository:
+        return IimuzykaIdsMappingRepository(connection_manager=core.sqlite_connection_manager)
+
 
 repositories = Repositories()
 
@@ -69,25 +77,45 @@ class External:
     def youtube_music(self) -> YouTubeMusicClient:
         return YouTubeMusicClient(client=core.yt_music_client)
 
+    @cached_property
+    def iimyzyka_top_client(self) -> IimuzykaTopClient:
+        return IimuzykaTopClient(config=core.config.sources.iimuzyka_top)
+
 
 external = External()
 
 
 class Services:
     @cached_property
-    def soul_over_ai_service(self) -> SoulOverAiService:
-        return SoulOverAiService(
+    def youtube_adapter_service(self) -> YouTubeAdapterService:
+        return YouTubeAdapterService(
             youtube_client=external.youtube,
             youtube_music_client=external.youtube_music,
-            soul_over_ai_client=external.soul_over_ai_client,
             youtube_handles_repository=repositories.youtube_handles_repository,
             youtube_music_aliases_repository=repositories.youtube_music_aliases_repository,
         )
 
     @cached_property
+    def soul_over_ai_service(self) -> SoulOverAiService:
+        return SoulOverAiService(
+            youtube_adapter_service=self.youtube_adapter_service,
+            soul_over_ai_client=external.soul_over_ai_client,
+        )
+
+    @cached_property
+    def iimyzyka_top_service(self) -> IimuzykaTopService:
+        return IimuzykaTopService(
+            youtube_adapter_service=self.youtube_adapter_service,
+            iimyzyka_top_client=external.iimyzyka_top_client,
+            iimuzyka_ids_mapping_repository=repositories.iimuzyka_ids_mapping_repository,
+        )
+
+    @cached_property
     def verdict_controller_service(self) -> VerdictControllerService:
         return VerdictControllerService(
-            soul_over_ai_service=self.soul_over_ai_service, verdicts_repository=repositories.redis_verdicts_repository
+            soul_over_ai_service=self.soul_over_ai_service,
+            iimuzyka_top_service=self.iimyzyka_top_service,
+            verdicts_repository=repositories.redis_verdicts_repository,
         )
 
 
