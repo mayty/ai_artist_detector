@@ -10,7 +10,7 @@ class YouTubeMusicClient:
     def __init__(self, client: YTMusic) -> None:
         self.client = client
 
-    def get_ytm_id_aliases(self, youtube_id: str) -> list[str]:
+    def get_ytm_id_aliases(self, youtube_id: str) -> tuple[str, list[str]]:
         logger.debug('RetrievingYoutubeMusicAliases', youtube_id=youtube_id)
 
         try:
@@ -18,7 +18,7 @@ class YouTubeMusicClient:
         except KeyError as exc:
             # Different channel type
             logger.warning('FailedToFetchArtistData', youtube_id=youtube_id, exc=exc)
-            return []
+            return '', []
 
         artist_name = response['name']
         channel_id = response['channelId']
@@ -43,4 +43,4 @@ class YouTubeMusicClient:
 
         aliases_list = list(aliases)
         logger.debug('FoundAliases', youtube_id=youtube_id, name=artist_name, aliases=aliases_list)
-        return aliases_list
+        return artist_name, aliases_list

@@ -1,3 +1,4 @@
+import html
 import re
 from typing import NamedTuple, TYPE_CHECKING
 from urllib.parse import unquote
@@ -17,7 +18,7 @@ class PageResponse(NamedTuple):
 
 class ArtistResponse(NamedTuple):
     name: str
-    handles: set[str]
+    paths: list[tuple[str, list[tuple[str, str]]]]
 
 
 class IimuzykaTopClient:
@@ -52,9 +53,9 @@ class IimuzykaTopClient:
         response.raise_for_status()
 
         name_match = self._name_pattern.search(response.text)
-        name = name_match.group('name') if name_match else ''
+        name = html.unescape(name_match.group('name')) if name_match else ''
 
-        youtube_ids: set[str] = set()
+        youtube_paths: list[tuple[str, list[tuple[str, str]]]] = []
         for youtube_link_match in self._youtube_link_pattern.findall(response.text):
             href_match = self._href_pattern.search(youtube_link_match)
             if href_match is None:
@@ -70,15 +71,12 @@ class IimuzykaTopClient:
             if url_path is None:
                 continue
 
-            if url_path.startswith('/@'):
-                youtube_ids.add(unquote(url_path[1:].rstrip('/')))
+            url_path = unquote(url_path.strip('/'))
+            if not url_path:
                 continue
 
-            channel_prefix = '/channel/'
-            if url_path.startswith(channel_prefix):
-                youtube_ids.add(url_path[len(channel_prefix) :])
-                continue
+            youtube_paths.append((url_path, url.query_params()))
 
-        logger.debug('FetchedArtistYoutube', artist_id=artist_id, name=name, youtube_ids=youtube_ids)
+        logger.debug('FetchedArtistYoutube', artist_id=artist_id, name=name, youtube_paths=youtube_paths)
 
-        return ArtistResponse(name=name, handles=youtube_ids)
+        return ArtistResponse(name=name, paths=youtube_paths)

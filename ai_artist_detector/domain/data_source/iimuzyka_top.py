@@ -40,33 +40,49 @@ class IimuzykaTopService:
 
         return ytm_ids
 
+    def _get_first_query_param(self, params: list[tuple[str, str]], name: str) -> str | None:
+        for param_name, param_value in params:
+            if param_name == name:
+                return param_value
+        return None
+
     def _get_artist_youtube_music_ids(self, artist_id: int) -> set[str]:
         try:
-            youtube_handles = self.iimuzyka_ids_mapping_repository.get_or_raise_youtube_handles(artist_id)
-            logger.debug('UsingCachedYoutubeHandles', artist_id=artist_id, youtube_handles=youtube_handles)
+            youtube_paths = self.iimuzyka_ids_mapping_repository.get_or_raise_youtube_paths(artist_id)
+            logger.debug('UsingCachedYoutubePaths', artist_id=artist_id, youtube_paths=youtube_paths)
         except RowNotFoundError:
             youtube_handles_response = self.iimyzyka_top_client.get_artist_youtube(artist_id)
-            youtube_handles = youtube_handles_response.handles
-            self.iimuzyka_ids_mapping_repository.set_youtube_handles(
-                artist_id, youtube_handles_response.name, youtube_handles_response.handles
+            youtube_paths = youtube_handles_response.paths
+            self.iimuzyka_ids_mapping_repository.set_youtube_paths(
+                artist_id, youtube_handles_response.name, youtube_handles_response.paths
             )
 
-        if not youtube_handles:
+        if not youtube_paths:
             logger.debug('NoYoutubeHandlesForArtist', artist_id=artist_id)
             return set()
 
         ytm_ids: set[str] = set()
 
-        for handle in youtube_handles:
-            if handle.startswith('@'):
-                artist_ytm_id = self.youtube_adapter_service.get_artist_id_from_handle(handle)
+        for path, query_params in youtube_paths:
+            if path.startswith('@'):
+                artist_ytm_id = self.youtube_adapter_service.get_artist_id_from_handle(path)
                 if artist_ytm_id is None:
                     continue
+                artist_ytm_ids = {artist_ytm_id}
+            elif path.startswith('channel/'):
+                artist_ytm_ids = {path.removeprefix('channel/')}
+            elif path == 'results':
+                search_query = self._get_first_query_param(query_params, 'search_query')
+                if not search_query:
+                    logger.warning('NoSearchQueryInYoutubePath', youtube_path=path)
+                    continue
+                artist_ytm_ids = self.youtube_adapter_service.get_artist_id_from_search_query(search_query)
             else:
-                artist_ytm_id = handle
+                continue
 
-            ytm_ids.add(artist_ytm_id)
+            ytm_ids |= artist_ytm_ids
 
-            ytm_ids.update(self.youtube_adapter_service.get_artist_aliases(artist_ytm_id, handle))
+            for artist_ytm_id in artist_ytm_ids:
+                ytm_ids |= self.youtube_adapter_service.get_artist_aliases(artist_ytm_id)
 
         return ytm_ids
