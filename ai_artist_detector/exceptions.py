@@ -7,3 +7,8 @@ class InvalidConfigTypeError(ProjectError, TypeError): ...
 
 
 class RowNotFoundError(ProjectError): ...
+
+
+class RateLimitExceededError(ProjectError):
+    def __init__(self, body: str) -> None:
+        self.body = body

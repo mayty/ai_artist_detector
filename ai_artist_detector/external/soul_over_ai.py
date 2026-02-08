@@ -13,11 +13,11 @@ class SoulOverAiClient:
         self._raw_youtube_cache: dict[str, str] | None = None
         self._raw_ytm_cache: dict[str, list[str]] | None = None
 
-    def retrieve_ai_youtube_channels(self) -> dict[str, str]:
+    def retrieve_ai_youtube_channels(self) -> set[str]:
         response = requests.get(str(self.config.source), timeout=self.config.timeout_seconds)
         response.raise_for_status()
 
-        result: dict[str, str] = {}
+        result: set[str] = set()
 
         for artist_data in response.json():
             name = artist_data['name']
@@ -32,12 +32,12 @@ class SoulOverAiClient:
 
             if youtube_id.startswith('@'):
                 logger.debug('YoutubeHandle', artist_name=name, youtube_handle=youtube_id[1:])
-                result[name] = youtube_id
+                result.add(youtube_id)
                 continue
 
             if youtube_id.startswith('UC'):
                 logger.debug('YoutubeId', artist_name=name, youtube_id=youtube_id)
-                result[name] = youtube_id
+                result.add(youtube_id)
                 continue
 
             logger.debug('UnknownYoutubeIdFormat', artist_name=name, youtube_id=youtube_id)

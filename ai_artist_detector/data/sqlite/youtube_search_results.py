@@ -7,8 +7,8 @@ if TYPE_CHECKING:
     from ai_artist_detector.data.sqlite.connection_manager import SQLiteConnectionManager
 
 
-class IimuzykaIdsMappingRepository:
-    tablename = 'iimuzyka_ids'
+class YoutubeSearchResultsRepository:
+    tablename = 'youtube_search_results'
 
     def __init__(self, connection_manager: SQLiteConnectionManager):
         self.connection_manager = connection_manager
@@ -25,36 +25,31 @@ class IimuzykaIdsMappingRepository:
             if table_exists:
                 return
 
-            connection.execute(
-                f'CREATE TABLE {self.tablename} (iimuzyka_id INTEGER PRIMARY KEY, name TEXT, youtube_paths TEXT)'
-            )
+            connection.execute(f'CREATE TABLE {self.tablename} (query TEXT PRIMARY KEY, channel_ids TEXT)')
             connection.commit()
 
-    def get_or_raise_youtube_paths(self, iimuzyka_id: int) -> list[tuple[str, list[tuple[str, str]]]]:
+    def get_or_raise_artist_ids(self, query: str) -> set[str]:
         """
-        Return youtube_paths if a record exists.
+        Return artist IDs if a record exists.
         Raises `RowNotFoundError` otherwise.
         """
         with self.connection_manager as connection:
             row = connection.execute(
-                f'SELECT youtube_paths FROM {self.tablename} WHERE iimuzyka_id=:iimuzyka_id',
-                {'iimuzyka_id': iimuzyka_id},
+                f'SELECT channel_ids FROM {self.tablename} WHERE query=:query',
+                {'query': query},
             ).fetchone()
         if row is None:
-            msg = f'YouTube paths for {iimuzyka_id} not found'
+            msg = f'YouTube channel_ids for {query} not found'
             raise RowNotFoundError(msg)
-        return json.loads(row[0])
+        return set(json.loads(row[0]))
 
-    def set_youtube_paths(
-        self, iimuzyka_id: int, name: str, youtube_paths: list[tuple[str, list[tuple[str, str]]]]
-    ) -> None:
+    def set_artist_ids(self, query: str, youtube_paths: set[str]) -> None:
         with self.connection_manager as connection:
             connection.execute(
-                f'INSERT INTO {self.tablename} (iimuzyka_id, name, youtube_paths) VALUES (:iimuzyka_id, :name, :youtube_paths)',
+                f'INSERT INTO {self.tablename} (query, channel_ids) VALUES (:query, :channel_ids)',
                 {
-                    'iimuzyka_id': iimuzyka_id,
-                    'name': name,
-                    'youtube_paths': json.dumps(youtube_paths, ensure_ascii=False),
+                    'query': query,
+                    'channel_ids': json.dumps(list(youtube_paths), ensure_ascii=False),
                 },
             )
             connection.commit()

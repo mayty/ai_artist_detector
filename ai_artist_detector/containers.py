@@ -9,6 +9,7 @@ from ai_artist_detector.data.sqlite.connection_manager import SQLiteConnectionMa
 from ai_artist_detector.data.sqlite.iimuzyka_ids_mapping import IimuzykaIdsMappingRepository
 from ai_artist_detector.data.sqlite.youtube_handles_mapping import YouTubeHandlesRepository
 from ai_artist_detector.data.sqlite.youtube_music_aliases import YouTubeMusicAliasesRepository
+from ai_artist_detector.data.sqlite.youtube_search_results import YoutubeSearchResultsRepository
 from ai_artist_detector.domain.data_source.iimuzyka_top import IimuzykaTopService
 from ai_artist_detector.domain.data_source.soul_over_ai import SoulOverAiService
 from ai_artist_detector.domain.verdict_controller import VerdictControllerService
@@ -60,6 +61,10 @@ class Repositories:
     def iimuzyka_ids_mapping_repository(self) -> IimuzykaIdsMappingRepository:
         return IimuzykaIdsMappingRepository(connection_manager=core.sqlite_connection_manager)
 
+    @cached_property
+    def youtube_search_results_repository(self) -> YoutubeSearchResultsRepository:
+        return YoutubeSearchResultsRepository(connection_manager=core.sqlite_connection_manager)
+
 
 repositories = Repositories()
 
@@ -93,6 +98,7 @@ class Services:
             youtube_music_client=external.youtube_music,
             youtube_handles_repository=repositories.youtube_handles_repository,
             youtube_music_aliases_repository=repositories.youtube_music_aliases_repository,
+            youtube_search_results_repository=repositories.youtube_search_results_repository,
         )
 
     @cached_property
