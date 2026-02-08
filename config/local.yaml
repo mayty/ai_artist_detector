@@ -1,6 +1,3 @@
-sources:
-  soul_over_ai:
-    source: https://raw.githubusercontent.com/xoundbyte/soul-over-ai/refs/heads/main/dist/artists.json
 external:
   youtube:
     api_key: null # Specify in `config_override.yaml` for local development

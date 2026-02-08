@@ -43,6 +43,6 @@ class YouTubeMusicAliasesRepository:
         with self.connection_manager as connection:
             connection.execute(
                 f'INSERT INTO {self.table_name} (main_id, name, aliases) VALUES (:main_id, :name, :aliases)',
-                {'main_id': main_id, 'name': name, 'aliases': json.dumps(list(aliases))},
+                {'main_id': main_id, 'name': name, 'aliases': json.dumps(list(aliases), ensure_ascii=False)},
             )
             connection.commit()
