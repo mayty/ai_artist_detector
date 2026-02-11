@@ -21,12 +21,10 @@ class VerdictsRepository:
 
     async def _set(self, key: VerdictKeys, ids: set[str]) -> None:
         async with self.redis.pipeline(transaction=True) as pipe:
-            await (
-                pipe.delete(f'{self.namespace}:{key}')
-                .sadd(f'{self.namespace}:{key}', *(id_.encode('utf-8') for id_ in ids))
-                .set(f'{self.namespace}:{key}_updated_at', datetime.now(tz=UTC).isoformat())
-                .execute()
-            )
+            pipeline = pipe.delete(f'{self.namespace}:{key}')
+            if ids:
+                pipeline = pipeline.sadd(f'{self.namespace}:{key}', *(id_.encode('utf-8') for id_ in ids))
+            await pipeline.set(f'{self.namespace}:{key}_updated_at', datetime.now(tz=UTC).isoformat()).execute()
 
     async def _get(self, key: VerdictKeys) -> set[str]:
         return {id_.decode('utf-8') for id_ in await self.redis.smembers(f'{self.namespace}:{key}')}

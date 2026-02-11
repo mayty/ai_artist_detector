@@ -13,22 +13,35 @@ if TYPE_CHECKING:
 class YouTubeClient:
     def __init__(self, config: YouTubeConfig) -> None:
         self.config = config
-        self.hit_rate_limit = False
+        self._rate_limit_reached = False
 
-    def conver_youtube_handle_to_id(self, artist_handle: str) -> str | None:
-        if self.hit_rate_limit:
-            msg = 'RateLimiterHit'
+    def _raise_if_forbidden(self) -> None:
+        if not self.config.enabled:
+            msg = 'YouTubeClientDisabled'
             raise RateLimitExceededError(msg)
-        logger.debug('ConvertingYoutubeToYoutubeMusic', handle=artist_handle)
-        params = {
-            'forHandle': f'@{artist_handle.removeprefix("@")}',
-            'key': self.config.api_key,
-        }
+        if self._rate_limit_reached:
+            msg = 'RateLimitReached'
+            raise RateLimitExceededError(msg)
+
+    def _raise_if_rate_limit_exceeded(self, response: requests.Response) -> None:
+        if response.status_code == HTTP_403_FORBIDDEN:
+            self._rate_limit_reached = True
+            raise RateLimitExceededError(response.text)
+
+    def convert_youtube_handle_to_id(self, artist_handle: str) -> str | None:
+        self._raise_if_forbidden()
+
+        logger.info('FetchingYouTubeId', handle=artist_handle)
         channel_response = requests.get(
             self.config.channels_endpoint,
-            params=params,
+            params={
+                'forHandle': f'@{artist_handle.removeprefix("@")}',
+                'key': self.config.api_key,
+            },
             timeout=self.config.timeout_seconds,
         )
+
+        self._raise_if_rate_limit_exceeded(channel_response)
 
         if channel_response.status_code != HTTP_200_OK:
             msg = f'Failed to fetch user data for {artist_handle}: <{channel_response.status_code}>{channel_response.text}'
@@ -48,9 +61,7 @@ class YouTubeClient:
         raise RuntimeError(msg)
 
     def find_artist_by_search_query(self, search_query: str) -> set[str]:
-        if self.hit_rate_limit:
-            msg = 'RateLimiterHit'
-            raise RateLimitExceededError(msg)
+        self._raise_if_forbidden()
 
         search_query = search_query.lower().strip()
         logger.debug('SearchingYoutube', query=search_query)
@@ -67,8 +78,7 @@ class YouTubeClient:
             timeout=self.config.timeout_seconds,
         )
 
-        if search_response.status_code == HTTP_403_FORBIDDEN:
-            raise RateLimitExceededError(search_response.text)
+        self._raise_if_rate_limit_exceeded(search_response)
 
         if search_response.status_code != HTTP_200_OK:
             msg = (

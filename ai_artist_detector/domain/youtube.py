@@ -45,7 +45,7 @@ class YouTubeAdapterService:
             return None
 
         try:
-            artist_id = self.youtube_client.conver_youtube_handle_to_id(artist_handle)
+            artist_id = self.youtube_client.convert_youtube_handle_to_id(artist_handle)
         except RateLimitExceededError:
             logger.error('RateLimitExceeded', artist_handle=artist_handle)
             self.failed_rate_limit_count += 1

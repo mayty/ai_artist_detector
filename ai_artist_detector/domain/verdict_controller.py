@@ -55,6 +55,7 @@ class VerdictControllerService:
             if self._updated_at is not None:
                 logger.info('FetchingAiVerdicts')
                 self._ai_artists = await self.verdicts_repository.get_ai()
+                logger.info('AiVerdictsFetched', count=len(self._ai_artists))
             else:
                 logger.info('NoAiVerdictsFoundForInitialLoad')
 
@@ -64,5 +65,6 @@ class VerdictControllerService:
             logger.info('UpdatingAiVerdicts')
             self._ai_artists = await self.verdicts_repository.get_ai()
             self._updated_at = redis_updated_at
+            logger.info('AiVerdictsUpdated', count=len(self._ai_artists))
 
         return self._ai_artists or set()
