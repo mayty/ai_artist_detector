@@ -38,6 +38,8 @@ class IimuzykaTopService:
         for artist_id in artist_ids:
             ytm_ids.update(self._get_artist_youtube_music_ids(artist_id))
 
+        logger.info('FailedRequestsCount', value=self.youtube_adapter_service.failed_rate_limit_count)
+
         return ytm_ids
 
     def _get_first_query_param(self, params: list[tuple[str, str]], name: str) -> str | None:

@@ -1,5 +1,7 @@
 from typing import TYPE_CHECKING
 
+from loguru import logger
+
 if TYPE_CHECKING:
     from ai_artist_detector.domain.youtube import YouTubeAdapterService
     from ai_artist_detector.external.soul_over_ai import SoulOverAiClient
@@ -30,5 +32,7 @@ class SoulOverAiService:
 
             artist_aliases = self.youtube_adapter_service.get_artist_aliases(artist_id)
             ai_ids.update(artist_aliases)
+
+        logger.info('FailedRequestsCount', value=self.youtube_adapter_service.failed_rate_limit_count)
 
         return ai_ids
