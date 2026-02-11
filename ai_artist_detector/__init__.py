@@ -3,11 +3,12 @@ from sys import stderr
 
 from loguru import logger
 
+from ai_artist_detector.constants import LOG_LEVEL
 from ai_artist_detector.lib.logging import InterceptHandler
 
 
 def configure_logging() -> None:
-    logging.basicConfig(handlers=[InterceptHandler()], level='INFO', force=True)
+    logging.basicConfig(handlers=[InterceptHandler()], level=LOG_LEVEL, force=True)
     log_format = ' | '.join(  # noqa: FLY002
         (
             '[<lvl>{level:8}</>][<dim>{time:YYYY-MM-DD HH:mm:ss.SSSZ}</>]',
@@ -23,7 +24,7 @@ def configure_logging() -> None:
     logger.level('WARNING', color='<yellow>')
     logger.level('ERROR', color='<red>')
     logger.level('CRITICAL', color='<red><bold>')
-    logger.add(stderr, format=log_format, level='DEBUG')
+    logger.add(stderr, format=log_format, level=LOG_LEVEL)
 
 
 configure_logging()

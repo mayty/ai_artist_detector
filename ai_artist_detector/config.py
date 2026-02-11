@@ -54,6 +54,7 @@ class YouTubeConfig(BaseModel):
     channels_route: str = Field(default='/youtube/v3/channels', min_length=1, validate_default=True)
     search_route: str = Field(default='/youtube/v3/search', min_length=1, validate_default=True)
     timeout_seconds: int = Field(default=10, ge=0, validate_default=True)
+    enabled: bool = Field(default=True, validate_default=True)
 
     @cached_property
     def channels_endpoint(self) -> str:
