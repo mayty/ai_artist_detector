@@ -2,6 +2,8 @@ from typing import TYPE_CHECKING
 
 from loguru import logger
 
+from ai_artist_detector.exceptions import InvalidYoutubeMusicAccountTypeError
+
 if TYPE_CHECKING:
     from ytmusicapi import YTMusic
 
@@ -17,8 +19,7 @@ class YouTubeMusicClient:
             response = self.client.get_artist(youtube_id)
         except KeyError as exc:
             # Different channel type
-            logger.warning('FailedToFetchArtistData', youtube_id=youtube_id, exc=exc)
-            return '', []
+            raise InvalidYoutubeMusicAccountTypeError(youtube_id, reason=str(exc)) from exc
 
         artist_name = response['name']
         channel_id = response['channelId']
@@ -33,13 +34,20 @@ class YouTubeMusicClient:
             logger.warning('NoSongsFound', youtube_id=youtube_id, artist_name=artist_name)
 
         for song in song_results:
-            for artist in song['artists']:
-                if artist['name'] != artist_name:
-                    continue
-                alias = artist['id']
+            artists = song['artists']
+            if len(artists) == 1:  # If a song has only one artist, assume it's the target artist
+                alias = artists[0]['id']
                 if alias == youtube_id:
                     continue
                 aliases.add(alias)
+            else:
+                for artist in song['artists']:
+                    if artist['name'] != artist_name:
+                        continue
+                    alias = artist['id']
+                    if alias == youtube_id:
+                        continue
+                    aliases.add(alias)
 
         aliases_list = list(aliases)
         logger.debug('FoundAliases', youtube_id=youtube_id, name=artist_name, aliases=aliases_list)

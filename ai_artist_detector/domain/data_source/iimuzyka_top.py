@@ -3,7 +3,8 @@ from typing import TYPE_CHECKING
 
 from loguru import logger
 
-from ai_artist_detector.exceptions import RowNotFoundError
+from ai_artist_detector.exceptions import RowNotFoundError, TooManySearchMatchesError
+from ai_artist_detector.lib.helpers import get_first_query_param
 
 if TYPE_CHECKING:
     from ai_artist_detector.data.sqlite.iimuzyka_ids_mapping import IimuzykaIdsMappingRepository
@@ -72,9 +73,14 @@ class IimuzykaTopService:
         if path.startswith('channel/'):
             artist_ytm_ids = {path.removeprefix('channel/').split('/')[0]}
         elif path == 'results':
-            search_query = self._get_first_query_param(query_params, 'search_query')
+            search_query = get_first_query_param(query_params, 'search_query')
             if search_query:
-                artist_ytm_ids = self.youtube_adapter_service.get_artist_id_from_search_query(search_query)
+                try:
+                    artist_ytm_ids = self.youtube_adapter_service.get_artist_id_from_search_query(search_query)
+                except TooManySearchMatchesError:
+                    logger.error('TooManySearchMatches', search_query=search_query)
+            else:
+                logger.warning('NoSearchQueryInYoutubePath', youtube_path=path, query_params=query_params)
         else:
             for prefix in ('@', 'user/', 'c/'):
                 if not path.startswith(prefix):
@@ -94,9 +100,3 @@ class IimuzykaTopService:
             ytm_ids |= self.youtube_adapter_service.get_artist_aliases(artist_ytm_id)
 
         return ytm_ids
-
-    def _get_first_query_param(self, params: list[tuple[str, str]], name: str) -> str | None:
-        for param_name, param_value in params:
-            if param_name == name:
-                return param_value
-        return None

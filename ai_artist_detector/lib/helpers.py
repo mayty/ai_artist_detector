@@ -87,3 +87,10 @@ def ttl_cache[**ParamSpec, Ret](
         return wrapper
 
     return decorator
+
+
+def get_first_query_param(params: list[tuple[str, str]], name: str) -> str | None:
+    for param_name, param_value in params:
+        if param_name == name:
+            return param_value
+    return None

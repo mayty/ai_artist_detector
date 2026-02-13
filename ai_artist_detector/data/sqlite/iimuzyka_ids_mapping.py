@@ -30,6 +30,13 @@ class IimuzykaIdsMappingRepository:
             )
             connection.commit()
 
+    def _get_paths_from_str(self, value: str) -> list[tuple[str, list[tuple[str, str]]]]:
+        decoded = json.loads(value)
+        return [
+            (path, [(param_name, param_value) for param_name, param_value in query_params])
+            for path, query_params in decoded
+        ]
+
     def get_or_raise_youtube_paths(self, iimuzyka_id: int) -> list[tuple[str, list[tuple[str, str]]]]:
         """
         Return youtube_paths if a record exists.
@@ -43,7 +50,7 @@ class IimuzykaIdsMappingRepository:
         if row is None:
             msg = f'YouTube paths for {iimuzyka_id} not found'
             raise RowNotFoundError(msg)
-        return json.loads(row[0])
+        return self._get_paths_from_str(row[0])
 
     def set_youtube_paths(
         self, iimuzyka_id: int, name: str, youtube_paths: list[tuple[str, list[tuple[str, str]]]]
@@ -58,3 +65,9 @@ class IimuzykaIdsMappingRepository:
                 },
             )
             connection.commit()
+
+    def get_all(self) -> list[tuple[int, str, list[tuple[str, list[tuple[str, str]]]]]]:
+        with self.connection_manager as connection:
+            rows = connection.execute(f'SELECT iimuzyka_id, name, youtube_paths FROM {self.tablename}').fetchall()
+
+        return [(row[0], row[1], self._get_paths_from_str(row[2])) for row in rows]

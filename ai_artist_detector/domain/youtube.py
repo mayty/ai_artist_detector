@@ -2,7 +2,12 @@ from typing import TYPE_CHECKING
 
 from loguru import logger
 
-from ai_artist_detector.exceptions import RateLimitExceededError, RowNotFoundError
+from ai_artist_detector.exceptions import (
+    InvalidYoutubeMusicAccountTypeError,
+    RateLimitExceededError,
+    RowNotFoundError,
+    TooManySearchMatchesError,
+)
 
 if TYPE_CHECKING:
     from ai_artist_detector.data.sqlite.youtube_handles_mapping import YouTubeHandlesRepository
@@ -67,7 +72,11 @@ class YouTubeAdapterService:
             logger.debug('UsingCachedAliases', artist_id=artist_id, aliases=aliases)
             return aliases
 
-        artist_name, aliases = self.youtube_music_client.get_ytm_id_aliases(artist_id)
+        try:
+            artist_name, aliases = self.youtube_music_client.get_ytm_id_aliases(artist_id)
+        except InvalidYoutubeMusicAccountTypeError as exc:
+            logger.error('InvalidYoutubeMusicAccountTypeError', artist_id=artist_id, reason=exc.reason)
+            return set()
         aliases_set = set(aliases)
         logger.debug('FetchedAliases', artist_id=artist_id, aliases=aliases_set)
         self.youtube_music_aliases_repository.set_aliases(artist_id, artist_name, aliases_set)
@@ -82,6 +91,8 @@ class YouTubeAdapterService:
             pass
         else:
             logger.debug('UsingCachedSearchQuery', search_query=search_query, artist_ids=artist_ids)
+            if len(artist_ids) > 1:
+                raise TooManySearchMatchesError(search_query, artist_ids)
             return artist_ids
 
         if self.failed_rate_limit_count:
@@ -96,4 +107,6 @@ class YouTubeAdapterService:
             self.failed_rate_limit_count += 1
             return set()
         self.youtube_search_results_repository.set_artist_ids(search_query, artist_ids)
+        if len(artist_ids) > 1:
+            raise TooManySearchMatchesError(search_query, artist_ids)
         return artist_ids

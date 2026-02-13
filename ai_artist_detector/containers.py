@@ -7,6 +7,7 @@ from ai_artist_detector.config import AppConfig, get_config
 from ai_artist_detector.data.redis.verdicts import VerdictsRepository
 from ai_artist_detector.data.sqlite.connection_manager import SQLiteConnectionManager
 from ai_artist_detector.data.sqlite.iimuzyka_ids_mapping import IimuzykaIdsMappingRepository
+from ai_artist_detector.data.sqlite.iimuzyka_overrides import IimuzykaOverridesRepository
 from ai_artist_detector.data.sqlite.youtube_handles_mapping import YouTubeHandlesRepository
 from ai_artist_detector.data.sqlite.youtube_music_aliases import YouTubeMusicAliasesRepository
 from ai_artist_detector.data.sqlite.youtube_search_results import YoutubeSearchResultsRepository
@@ -64,6 +65,10 @@ class Repositories:
     @cached_property
     def youtube_search_results_repository(self) -> YoutubeSearchResultsRepository:
         return YoutubeSearchResultsRepository(connection_manager=core.sqlite_connection_manager)
+
+    @cached_property
+    def iimuzyke_overrides_repository(self) -> IimuzykaOverridesRepository:
+        return IimuzykaOverridesRepository(connection_manager=core.sqlite_connection_manager)
 
 
 repositories = Repositories()

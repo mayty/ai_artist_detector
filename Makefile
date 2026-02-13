@@ -15,3 +15,9 @@ sh:
 
 %:
 	docker compose run --rm $(COMMANDS_CONTAINER_NAME) make $@
+
+db_shell:
+	docker compose run --rm $(COMMANDS_CONTAINER_NAME) aiad db shell
+
+redis_shell:
+	docker compose run --rm $(COMMANDS_CONTAINER_NAME) aiad redis shell
