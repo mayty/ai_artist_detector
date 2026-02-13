@@ -1,9 +1,11 @@
+from contextlib import contextmanager
 from typing import TYPE_CHECKING
 from urllib.parse import unquote
 
 from loguru import logger
 
 from ai_artist_detector.exceptions import InvalidYoutubeMusicAccountTypeError
+from ai_artist_detector.lib.helpers import rate_limit, singular_cache
 
 if TYPE_CHECKING:
     from collections.abc import Generator
@@ -36,31 +38,57 @@ class YouTubeMusicClient:
                     continue
                 yield alias
 
+    @contextmanager
+    def _cache_ytm_request(self) -> Generator[None]:
+
+        old_send_request = self.client._send_request  # noqa: SLF001
+        try:
+            self.client._send_request = singular_cache(self.client._send_request)  # noqa: SLF001
+            yield
+        finally:
+            self.client._send_request = old_send_request  # noqa: SLF001
+
+    @rate_limit(rps=0.2)
+    def _get_ytm_response(self, youtube_id: str) -> dict:
+        try:
+            return self.client.get_artist(youtube_id)
+        except KeyError:
+            logger.debug('ChannelIsNotArtist', youtube_id=youtube_id)
+
+        try:
+            return self.client.get_user(youtube_id)
+        except KeyError as exc:
+            logger.debug('ChannelIsNotUser', youtube_id=youtube_id)
+            raise InvalidYoutubeMusicAccountTypeError(youtube_id, reason=str(exc)) from exc
+
     def get_ytm_id_aliases(self, youtube_id: str) -> tuple[str, list[str]]:
         logger.info('RetrievingYoutubeMusicAliases', youtube_id=youtube_id)
 
-        try:
-            response = self.client.get_artist(youtube_id)
-        except KeyError as exc:
-            # Different channel type
-            raise InvalidYoutubeMusicAccountTypeError(youtube_id, reason=str(exc)) from exc
+        with self._cache_ytm_request():
+            response = self._get_ytm_response(youtube_id)
 
         artist_name = self._unquote_name(response['name'])
         if artist_name is None:
             raise InvalidYoutubeMusicAccountTypeError(youtube_id, reason='No artist name found')
-        channel_id = response['channelId']
 
         aliases: set[str] = set()
 
-        if channel_id is not None:
+        if (channel_id := response.get('channelId')) is not None:
             aliases.add(channel_id)
 
-        song_results = response['songs'].get('results', [])
+        song_results = response.get('songs', {}).get('results', [])
         if not song_results:
             logger.warning('NoSongsFound', youtube_id=youtube_id, artist_name=artist_name)
 
         for song in song_results:
             aliases.update(self._get_alias_from_song(song, artist_name))
+
+        video_results = response.get('videos', {}).get('results', [])
+        if not video_results:
+            logger.warning('NoVideosFound', youtube_id=youtube_id, artist_name=artist_name)
+
+        for video in video_results:
+            aliases.update(self._get_alias_from_song(video, artist_name))
 
         aliases_list = list(aliases - {youtube_id})
         logger.info('FoundAliases', youtube_id=youtube_id, name=artist_name, aliases=aliases_list)
