@@ -64,7 +64,7 @@ class YouTubeClient:
         self._raise_if_forbidden()
 
         search_query = search_query.lower().strip()
-        logger.debug('SearchingYoutube', query=search_query)
+        logger.info('SearchingYoutube', query=search_query)
 
         params = {
             'part': 'snippet',
