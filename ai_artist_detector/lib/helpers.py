@@ -1,8 +1,12 @@
 import asyncio
 import threading
+from copy import deepcopy
 from datetime import datetime, timedelta, UTC
 from functools import wraps
+from time import sleep
 from typing import Any, cast, Protocol, TYPE_CHECKING
+
+from loguru import logger
 
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable, Coroutine
@@ -74,6 +78,7 @@ def ttl_cache[**ParamSpec, Ret](
         checked_at: datetime | None = None
         cached_value: Ret | None = None
 
+        @wraps(func)
         async def wrapper(*args: ParamSpec.args, **kwargs: ParamSpec.kwargs) -> Ret:
             nonlocal checked_at, cached_value
             now = datetime.now(tz=UTC)
@@ -94,3 +99,65 @@ def get_first_query_param(params: list[tuple[str, str]], name: str) -> str | Non
         if param_name == name:
             return param_value
     return None
+
+
+def rate_limit[**ParamSpec, Ret](
+    rps: float,
+) -> Callable[[Callable[ParamSpec, Ret]], Callable[ParamSpec, Ret]]:
+    def decorator(func: Callable[ParamSpec, Ret]) -> Callable[ParamSpec, Ret]:
+        last_call_at = datetime.min.replace(tzinfo=UTC)
+        call_wait_time = timedelta(seconds=1 / rps)
+
+        @wraps(func)
+        def wrapper(*args: ParamSpec.args, **kwargs: ParamSpec.kwargs) -> Ret:
+            nonlocal last_call_at
+            now = datetime.now(tz=UTC)
+            since_last_call = now - last_call_at
+            last_call_at = now
+
+            if since_last_call < call_wait_time:
+                time_to_wait = call_wait_time - since_last_call
+                logger.debug('RateLimiterSleeping', time_to_wait=time_to_wait)
+                sleep(time_to_wait.total_seconds())
+
+            return func(*args, **kwargs)
+
+        return wrapper
+
+    return decorator
+
+
+def singular_cache[**ParamSpec, Ret](func: Callable[ParamSpec, Ret]) -> Callable[ParamSpec, Ret]:
+    first_call_args: tuple[tuple, dict] | None = None
+    result: Ret | None = None
+
+    @wraps(func)
+    def wrapper(*args: ParamSpec.args, **kwargs: ParamSpec.kwargs) -> Ret:
+        nonlocal first_call_args, result
+
+        if first_call_args is None:
+            first_call_args = (deepcopy(args), deepcopy(kwargs))
+            result = func(*args, **kwargs)
+            return result
+
+        if args != first_call_args[0]:
+            logger.error(
+                'MismatchedCallArgs',
+                args=args,
+                first_args=first_call_args[0],
+            )
+            msg = 'Mismatched arguments'
+            raise RuntimeError(msg)
+
+        if kwargs != first_call_args[1]:
+            logger.error(
+                'MismatchedCallArgs',
+                kwargs=kwargs,
+                first_kwargs=first_call_args[1],
+            )
+            msg = 'Mismatched arguments'
+            raise RuntimeError(msg)
+
+        return cast('Ret', result)
+
+    return wrapper
