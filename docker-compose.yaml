@@ -15,7 +15,7 @@ services:
     depends_on:
       redis:
         condition: service_healthy
-    command: ["ai-artist-detector", "ingest", "all"]
+    command: ["aiad", "ingest", "all"]
   api-dev:
     image: ai-artist-detector-dev:latest
     build:
