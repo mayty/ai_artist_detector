@@ -33,7 +33,7 @@ dev = [
 ]
 
 [project.scripts]
-ai-artist-detector = "ai_artist_detector.cli_entry:cli_root"
+aiad = "ai_artist_detector.cli_entry:cli_root"
 
 [tool.ruff]
 line-length = 120

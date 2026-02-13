@@ -32,8 +32,10 @@ FROM python:3.14.2-alpine3.22
 ENV PYTHONOPTIMIZE=2
 ENV SERVER_PORT=8080
 
-RUN apk update && apk upgrade && apk add --no-cache curl
+RUN apk update && apk upgrade && apk add --no-cache curl sqlite
 ENV PATH="/root/.local/bin:${PATH}"
+
+COPY --from=redis:8.4.0-alpine3.22 /usr/local/bin/redis-cli /usr/local/bin/redis-cli
 
 WORKDIR /app
 
@@ -47,4 +49,4 @@ COPY config/uvicorn_logging.ini /app/config/uvicorn_logging.ini
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --start-interval=100ms --retries=3 \
   CMD curl -f http://localhost:${SERVER_PORT}/ping || exit 1
 
-CMD ai-artist-detector workers api -p ${SERVER_PORT}
+CMD aiad workers api -p ${SERVER_PORT}

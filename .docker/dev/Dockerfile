@@ -5,7 +5,9 @@ ENV SERVER_PORT=8080
 ENV UV_PYTHON=/usr/local/bin/python
 ENV UV_LINK_MODE=copy
 
-RUN apk update && apk upgrade && apk add --no-cache curl make gcc g++ libc-dev musl musl-dev
+RUN apk update && apk upgrade && apk add --no-cache curl make gcc g++ libc-dev musl musl-dev sqlite
+
+COPY --from=redis:8.4.0-alpine3.22 /usr/local/bin/redis-cli /usr/local/bin/redis-cli
 
 RUN curl -LsSf https://astral.sh/uv/${UV_VERSION}/install.sh | sh
 
@@ -25,4 +27,4 @@ COPY .docker/dev/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 ENTRYPOINT ["/entrypoint.sh"]
 
-CMD ai-artist-detector workers api-dev -p ${SERVER_PORT}
+CMD aiad workers api-dev -p ${SERVER_PORT}
