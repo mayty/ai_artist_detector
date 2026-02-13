@@ -13,7 +13,7 @@ class YouTubeMusicClient:
         self.client = client
 
     def get_ytm_id_aliases(self, youtube_id: str) -> tuple[str, list[str]]:
-        logger.debug('RetrievingYoutubeMusicAliases', youtube_id=youtube_id)
+        logger.info('RetrievingYoutubeMusicAliases', youtube_id=youtube_id)
 
         try:
             response = self.client.get_artist(youtube_id)
@@ -26,7 +26,7 @@ class YouTubeMusicClient:
 
         aliases: set[str] = set()
 
-        if channel_id != youtube_id:
+        if channel_id is not None:
             aliases.add(channel_id)
 
         song_results = response['songs'].get('results', [])
@@ -37,7 +37,7 @@ class YouTubeMusicClient:
             artists = song['artists']
             if len(artists) == 1:  # If a song has only one artist, assume it's the target artist
                 alias = artists[0]['id']
-                if alias == youtube_id:
+                if alias is None:
                     continue
                 aliases.add(alias)
             else:
@@ -45,10 +45,10 @@ class YouTubeMusicClient:
                     if artist['name'] != artist_name:
                         continue
                     alias = artist['id']
-                    if alias == youtube_id:
+                    if alias is None:
                         continue
                     aliases.add(alias)
 
-        aliases_list = list(aliases)
-        logger.debug('FoundAliases', youtube_id=youtube_id, name=artist_name, aliases=aliases_list)
+        aliases_list = list(aliases - {youtube_id})
+        logger.info('FoundAliases', youtube_id=youtube_id, name=artist_name, aliases=aliases_list)
         return artist_name, aliases_list
