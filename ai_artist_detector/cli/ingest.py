@@ -10,11 +10,14 @@ def ingest_group() -> None:
 
 
 @ingest_group.command('all')
+@click.option(
+    '--ignore-aliases-cache', '-i', is_flag=True, default=False, help='Ignore aliases cache and recalculate it'
+)
 @async_to_sync
-async def ingest_soul_over_ai() -> None:
+async def ingest_soul_over_ai(ignore_aliases_cache: bool) -> None:
     """Ingest artists data"""
     from ai_artist_detector.containers import services
 
     logger.info('StartingDataIngestion')
-    await services.verdict_controller_service.recalculate()
+    await services.verdict_controller_service.recalculate(ignore_aliases_cache=ignore_aliases_cache)
     logger.info('DataIngestionComplete')

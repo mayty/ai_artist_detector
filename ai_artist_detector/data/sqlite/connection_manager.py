@@ -9,18 +9,24 @@ class SQLiteConnectionManager:
     def __init__(self, config: SqliteConfig) -> None:
         self.config = config
         self._connection: Connection | None = None
+        self._decorator_depth = 0
 
     def __enter__(self) -> Connection:
-        if self._connection is not None:
-            msg = 'Connection already exists'
-            raise RuntimeError(msg)
-
         self._connection = connect(self.config.resolved_file_location)
+        self._decorator_depth += 1
         return self._connection
 
     def __exit__(self, exc_type, exc_val, exc_tb) -> None:
         if self._connection is None:
-            return
+            msg = 'Connection already destroyed'
+            raise RuntimeError(msg)
 
-        self._connection.close()
-        self._connection = None
+        if self._decorator_depth <= 0:
+            msg = 'Broken manager nesting'
+            raise RuntimeError(msg)
+
+        self._decorator_depth -= 1
+
+        if self._decorator_depth == 0:
+            self._connection.close()
+            self._connection = None
