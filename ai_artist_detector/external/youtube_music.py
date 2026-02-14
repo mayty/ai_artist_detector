@@ -1,9 +1,9 @@
 import string
 from contextlib import contextmanager
 from typing import overload, TYPE_CHECKING
-from unicodedata import combining, normalize
 from urllib.parse import unquote
 
+from anyascii import anyascii
 from loguru import logger
 
 from ai_artist_detector.exceptions import InvalidYoutubeMusicAccountTypeError
@@ -39,8 +39,7 @@ class YouTubeMusicClient:
     def _normalize_name(self, name: str | None) -> str | None:
         if name is None:
             return name
-        normalized = normalize('NFKD', self._unescape_name(name)).lower().replace('&', 'and')
-        normalized = ''.join(a for a in normalized if not combining(a)).strip().removeprefix('the ')
+        normalized = anyascii(self._unescape_name(name)).lower().replace('&', 'and').strip().removeprefix('the ')
 
         return ''.join(a for a in normalized if a not in string.punctuation and a not in string.whitespace) or None
 
@@ -107,7 +106,12 @@ class YouTubeMusicClient:
         if artist_name is None:
             raise InvalidYoutubeMusicAccountTypeError(youtube_id, reason='No artist name found')
 
-        logger.info('FetchingForName', youtube_id=youtube_id, artist_name=artist_name, normalized_name=self._normalize_name(artist_name))
+        logger.info(
+            'FetchingForName',
+            youtube_id=youtube_id,
+            artist_name=artist_name,
+            normalized_name=self._normalize_name(artist_name),
+        )
 
         aliases: set[str] = set()
 
