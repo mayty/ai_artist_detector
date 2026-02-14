@@ -1,5 +1,7 @@
+import string
 from contextlib import contextmanager
 from typing import overload, TYPE_CHECKING
+from unicodedata import combining, normalize
 from urllib.parse import unquote
 
 from loguru import logger
@@ -28,25 +30,44 @@ class YouTubeMusicClient:
             return name
         return unquote(name)
 
+    @overload
+    def _normalize_name(self, name: str) -> str | None: ...
+
+    @overload
+    def _normalize_name(self, name: None) -> None: ...
+
     def _normalize_name(self, name: str | None) -> str | None:
         if name is None:
             return name
-        return self._unescape_name(name).lower().strip()
+        normalized = normalize('NFKD', self._unescape_name(name)).lower().replace('&', 'and')
+        normalized = ''.join(a for a in normalized if not combining(a)).strip().removeprefix('the ')
+
+        return ''.join(a for a in normalized if a not in string.punctuation and a not in string.whitespace) or None
+
+    def _get_name_variations(self, name: str) -> set[str]:
+        normalized_base = self._normalize_name(name)
+
+        return {
+            *({normalized_base} if normalized_base else []),
+            *(normalized for suffix in ['official'] if (normalized := self._normalize_name(f'{name} {suffix}'))),
+        }
 
     def _get_alias_from_element(self, song: dict, artist_name: str, *, validate_name: bool = True) -> Generator[str]:
-        normalized_name = self._normalize_name(artist_name)
+        potential_names = self._get_name_variations(artist_name)
 
         artists = song['artists']
         if len(artists) == 1:  # If an element has only one artist, assume it's the target artist
             alias = artists[0]['id']
             if alias is None:
                 return
-            if validate_name and self._normalize_name(artists[0]['name']) != normalized_name:
+            artist_names = self._get_name_variations(artists[0]['name'])
+            if validate_name and not (artist_names & potential_names):
                 return
             yield alias
         else:
             for artist in song['artists']:
-                if self._normalize_name(artist['name']) != normalized_name:
+                artist_names = self._get_name_variations(artist['name'])
+                if not (artist_names & potential_names):
                     continue
                 alias = artist['id']
                 if alias is None:
@@ -85,6 +106,8 @@ class YouTubeMusicClient:
         artist_name = self._unescape_name(response['name'])
         if artist_name is None:
             raise InvalidYoutubeMusicAccountTypeError(youtube_id, reason='No artist name found')
+
+        logger.info('FetchingForName', youtube_id=youtube_id, artist_name=artist_name, normalized_name=self._normalize_name(artist_name))
 
         aliases: set[str] = set()
 
