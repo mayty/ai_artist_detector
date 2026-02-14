@@ -16,7 +16,7 @@ class SoulOverAiService:
         self.youtube_adapter_service = youtube_adapter_service
         self.soul_over_ai_client = soul_over_ai_client
 
-    def get_ai_artists(self) -> set[str]:
+    def get_ai_artists(self, ignore_aliases_cache: bool) -> set[str]:
         ai_artists = self.soul_over_ai_client.retrieve_ai_youtube_channels()
         ai_ids: set[str] = set()
 
@@ -30,7 +30,9 @@ class SoulOverAiService:
 
             ai_ids.add(artist_id)
 
-            artist_aliases = self.youtube_adapter_service.get_artist_aliases(artist_id)
+            artist_aliases = self.youtube_adapter_service.get_artist_aliases(
+                artist_id, ignore_aliases_cache=ignore_aliases_cache
+            )
             ai_ids.update(artist_aliases)
 
         logger.info('FailedRequestsCount', rate_limit=self.youtube_adapter_service.failed_rate_limit_count)

@@ -63,14 +63,15 @@ class YouTubeAdapterService:
         self.youtube_handles_repository.set_youtube_id(artist_handle, artist_id)
         return artist_id
 
-    def get_artist_aliases(self, artist_id: str) -> set[str]:
-        try:
-            aliases = self.youtube_music_aliases_repository.get_aliases(artist_id)
-        except RowNotFoundError:
-            pass
-        else:
-            logger.debug('UsingCachedAliases', artist_id=artist_id, aliases=aliases)
-            return aliases
+    def get_artist_aliases(self, artist_id: str, ignore_aliases_cache: bool) -> set[str]:
+        if not ignore_aliases_cache:
+            try:
+                aliases = self.youtube_music_aliases_repository.get_aliases(artist_id)
+            except RowNotFoundError:
+                pass
+            else:
+                logger.debug('UsingCachedAliases', artist_id=artist_id, aliases=aliases)
+                return aliases
 
         try:
             artist_name, aliases = self.youtube_music_client.get_ytm_id_aliases(artist_id)

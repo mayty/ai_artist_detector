@@ -25,7 +25,7 @@ class VerdictControllerService:
         self._ai_artists: set[str] | None = None
         self._updated_at: datetime | None = None
 
-    async def recalculate(self) -> None:
+    async def recalculate(self, ignore_aliases_cache: bool) -> None:
         sources = {
             'soul_over_ai': self.soul_over_ai_service,
             'iimyzyka_top': self.iimuzyka_top_service,
@@ -36,7 +36,7 @@ class VerdictControllerService:
         for source, service in sources.items():
             old_artists_count = len(ai_artists)
             logger.info('RetrievingAiArtists', source=source)
-            retrieved_artists = service.get_ai_artists()
+            retrieved_artists = service.get_ai_artists(ignore_aliases_cache=ignore_aliases_cache)
             ai_artists |= retrieved_artists
             logger.info(
                 'ArtistsRetrieved', count=len(retrieved_artists), added_count=len(ai_artists) - old_artists_count

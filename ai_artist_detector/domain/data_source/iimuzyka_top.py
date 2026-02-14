@@ -23,7 +23,7 @@ class IimuzykaTopService:
         self.iimyzyka_top_client = iimyzyka_top_client
         self.iimuzyka_ids_mapping_repository = iimuzyka_ids_mapping_repository
 
-    def get_ai_artists(self) -> set[str]:
+    def get_ai_artists(self, ignore_aliases_cache: bool) -> set[str]:
         logger.info('RetrievingInitialPage')
         page = self.iimyzyka_top_client.get_page()
         logger.info('RetrievedPage', artists_count=len(page.artist_ids))
@@ -39,13 +39,13 @@ class IimuzykaTopService:
 
         for artist_id in artist_ids:
             with logger.contextualize(artist_id=artist_id):
-                ytm_ids.update(self._get_artist_youtube_music_ids(artist_id))
+                ytm_ids.update(self._get_artist_youtube_music_ids(artist_id, ignore_aliases_cache=ignore_aliases_cache))
 
         logger.info('FailedRequestsCount', rate_limit=self.youtube_adapter_service.failed_rate_limit_count)
 
         return ytm_ids
 
-    def _get_artist_youtube_music_ids(self, artist_id: int) -> set[str]:
+    def _get_artist_youtube_music_ids(self, artist_id: int, ignore_aliases_cache: bool) -> set[str]:
         try:
             youtube_paths = self.iimuzyka_ids_mapping_repository.get_or_raise_youtube_paths(artist_id)
             logger.debug('UsingCachedYoutubePaths', youtube_paths=youtube_paths)
@@ -63,11 +63,13 @@ class IimuzykaTopService:
         ytm_ids: set[str] = set()
 
         for path, query_params in youtube_paths:
-            ytm_ids |= self._get_youtube_music_ids(path, query_params)
+            ytm_ids |= self._get_youtube_music_ids(path, query_params, ignore_aliases_cache=ignore_aliases_cache)
 
         return ytm_ids
 
-    def _get_youtube_music_ids(self, path: str, query_params: list[tuple[str, str]]) -> set[str]:
+    def _get_youtube_music_ids(
+        self, path: str, query_params: list[tuple[str, str]], ignore_aliases_cache: bool
+    ) -> set[str]:
         artist_ytm_ids: set[str] = set()
 
         if path.startswith('channel/'):
@@ -97,6 +99,8 @@ class IimuzykaTopService:
         ytm_ids = copy(artist_ytm_ids)
 
         for artist_ytm_id in artist_ytm_ids:
-            ytm_ids |= self.youtube_adapter_service.get_artist_aliases(artist_ytm_id)
+            ytm_ids |= self.youtube_adapter_service.get_artist_aliases(
+                artist_ytm_id, ignore_aliases_cache=ignore_aliases_cache
+            )
 
         return ytm_ids

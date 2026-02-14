@@ -1,5 +1,5 @@
 from contextlib import contextmanager
-from typing import TYPE_CHECKING
+from typing import overload, TYPE_CHECKING
 from urllib.parse import unquote
 
 from loguru import logger
@@ -17,21 +17,36 @@ class YouTubeMusicClient:
     def __init__(self, client: YTMusic) -> None:
         self.client = client
 
-    def _unquote_name(self, name: str | None) -> str | None:
+    @overload
+    def _unescape_name(self, name: str) -> str: ...
+
+    @overload
+    def _unescape_name(self, name: None) -> None: ...
+
+    def _unescape_name(self, name: str | None) -> str | None:
         if name is None:
             return name
         return unquote(name)
 
-    def _get_alias_from_song(self, song: dict, artist_name: str) -> Generator[str]:
+    def _normalize_name(self, name: str | None) -> str | None:
+        if name is None:
+            return name
+        return self._unescape_name(name).lower().strip()
+
+    def _get_alias_from_element(self, song: dict, artist_name: str, *, validate_name: bool = True) -> Generator[str]:
+        normalized_name = self._normalize_name(artist_name)
+
         artists = song['artists']
-        if len(artists) == 1:  # If a song has only one artist, assume it's the target artist
+        if len(artists) == 1:  # If an element has only one artist, assume it's the target artist
             alias = artists[0]['id']
             if alias is None:
+                return
+            if validate_name and self._normalize_name(artists[0]['name']) != normalized_name:
                 return
             yield alias
         else:
             for artist in song['artists']:
-                if self._unquote_name(artist['name']) != artist_name:
+                if self._normalize_name(artist['name']) != normalized_name:
                     continue
                 alias = artist['id']
                 if alias is None:
@@ -67,7 +82,7 @@ class YouTubeMusicClient:
         with self._cache_ytm_request():
             response = self._get_ytm_response(youtube_id)
 
-        artist_name = self._unquote_name(response['name'])
+        artist_name = self._unescape_name(response['name'])
         if artist_name is None:
             raise InvalidYoutubeMusicAccountTypeError(youtube_id, reason='No artist name found')
 
@@ -81,14 +96,14 @@ class YouTubeMusicClient:
             logger.warning('NoSongsFound', youtube_id=youtube_id, artist_name=artist_name)
 
         for song in song_results:
-            aliases.update(self._get_alias_from_song(song, artist_name))
+            aliases.update(self._get_alias_from_element(song, artist_name))
 
         video_results = response.get('videos', {}).get('results', [])
         if not video_results:
             logger.warning('NoVideosFound', youtube_id=youtube_id, artist_name=artist_name)
 
         for video in video_results:
-            aliases.update(self._get_alias_from_song(video, artist_name))
+            aliases.update(self._get_alias_from_element(video, artist_name, validate_name=True))
 
         aliases_list = list(aliases - {youtube_id})
         logger.info('FoundAliases', youtube_id=youtube_id, name=artist_name, aliases=aliases_list)
