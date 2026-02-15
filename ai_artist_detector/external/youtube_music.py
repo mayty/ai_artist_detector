@@ -51,22 +51,33 @@ class YouTubeMusicClient:
             *(normalized for suffix in ['official'] if (normalized := self._normalize_name(f'{name} {suffix}'))),
         }
 
-    def _get_alias_from_element(self, song: dict, artist_name: str, *, validate_name: bool = True) -> Generator[str]:
-        potential_names = self._get_name_variations(artist_name)
+    def _names_match(self, name_a: str, name_b: str) -> bool:
+        normalized_a = self._normalize_name(name_a)
+        normalized_b = self._normalize_name(name_b)
 
-        artists = song['artists']
+        if normalized_a is None or normalized_b is None:
+            return False
+
+        return normalized_a in normalized_b or normalized_b in normalized_a
+
+    def _get_alias_from_element(self, element: dict, artist_name: str, *, validate_name: bool = True) -> Generator[str]:
+        artists = element['artists']
         if len(artists) == 1:  # If an element has only one artist, assume it's the target artist
             alias = artists[0]['id']
             if alias is None:
                 return
-            artist_names = self._get_name_variations(artists[0]['name'])
-            if validate_name and not (artist_names & potential_names):
+            candidate_name = artists[0]['name']
+            if candidate_name is None:
+                return
+            if validate_name and not self._names_match(artist_name, candidate_name):
                 return
             yield alias
         else:
-            for artist in song['artists']:
-                artist_names = self._get_name_variations(artist['name'])
-                if not (artist_names & potential_names):
+            for artist in element['artists']:
+                candidate_name = artist['name']
+                if candidate_name is None:
+                    continue
+                if not self._names_match(artist_name, candidate_name):
                     continue
                 alias = artist['id']
                 if alias is None:
