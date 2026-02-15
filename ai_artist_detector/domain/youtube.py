@@ -73,12 +73,13 @@ class YouTubeAdapterService:
                 return aliases
 
         try:
-            artist_name, aliases = self.youtube_music_client.get_ytm_id_aliases(artist_id)
+            artist_name, aliases, can_cache_result = self.youtube_music_client.get_ytm_id_aliases(artist_id)
         except InvalidYoutubeMusicAccountTypeError as exc:
             logger.error('InvalidYoutubeMusicAccountTypeError', artist_id=artist_id, reason=exc.reason)
             return set()
         logger.debug('FetchedAliases', artist_id=artist_id, aliases=aliases)
-        self.youtube_music_aliases_repository.set_aliases(artist_id, artist_name, aliases)
+        if can_cache_result:
+            self.youtube_music_aliases_repository.set_aliases(artist_id, artist_name, aliases)
         return aliases
 
     def get_artist_id_from_search_query(self, search_query: str) -> set[str]:

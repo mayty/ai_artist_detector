@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING
 
 from loguru import logger
 
-from ai_artist_detector.exceptions import RowNotFoundError
+from ai_artist_detector.exceptions import NoSongsFoundError, RowNotFoundError
 from ai_artist_detector.lib.helpers import get_first_query_param
 
 if TYPE_CHECKING:
@@ -91,9 +91,15 @@ class IimuzykaTopService:
             )
             return is_match
 
-        is_match = self.youtube_adapter_service.artist_has_songs_match(artist_id, artist_tracks)
-
-        self.iimuzyka_youtube_music_artist_matches_repository.set_match_status(iimuzyka_artist_id, artist_id, is_match)
+        try:
+            is_match = self.youtube_adapter_service.artist_has_songs_match(artist_id, artist_tracks)
+        except NoSongsFoundError:
+            logger.warning('NoSongsPlaylistFound', iimuzyka_artist_id=iimuzyka_artist_id, youtube_id=artist_id)
+            is_match = False
+        else:
+            self.iimuzyka_youtube_music_artist_matches_repository.set_match_status(
+                iimuzyka_artist_id, artist_id, is_match
+            )
         return is_match
 
     def _get_youtube_music_ids(
