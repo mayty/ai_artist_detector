@@ -142,7 +142,7 @@ class YouTubeMusicClient:
         with self._cache_ytm_request():
             response = self._get_ytm_response(youtube_id, type_='profile')
 
-        artist_name = self._unescape_name(response['name'])
+        artist_name = self._unescape_name(response.get('name'))
         if artist_name is None:
             raise InvalidYoutubeMusicAccountTypeError(youtube_id, reason='No artist name found')
 
