@@ -77,10 +77,9 @@ class YouTubeAdapterService:
         except InvalidYoutubeMusicAccountTypeError as exc:
             logger.error('InvalidYoutubeMusicAccountTypeError', artist_id=artist_id, reason=exc.reason)
             return set()
-        aliases_set = set(aliases)
-        logger.debug('FetchedAliases', artist_id=artist_id, aliases=aliases_set)
-        self.youtube_music_aliases_repository.set_aliases(artist_id, artist_name, aliases_set)
-        return aliases_set
+        logger.debug('FetchedAliases', artist_id=artist_id, aliases=aliases)
+        self.youtube_music_aliases_repository.set_aliases(artist_id, artist_name, aliases)
+        return aliases
 
     def get_artist_id_from_search_query(self, search_query: str) -> set[str]:
         search_query = search_query.lower().strip()

@@ -136,7 +136,7 @@ class YouTubeMusicClient:
         msg = f'Invalid type: {type_}'
         raise ValueError(msg)
 
-    def get_ytm_id_aliases(self, youtube_id: str) -> tuple[str, list[str]]:
+    def get_ytm_id_aliases(self, youtube_id: str) -> tuple[str, set[str]]:
         logger.info('RetrievingYoutubeMusicAliases', youtube_id=youtube_id)
 
         with self._cache_ytm_request():
@@ -172,9 +172,12 @@ class YouTubeMusicClient:
         for video in video_results:
             aliases.update(self._get_alias_from_element(video, artist_name, validate_name=True))
 
-        aliases_list = list(aliases - {youtube_id})
-        logger.info('FoundAliases', youtube_id=youtube_id, name=artist_name, aliases=aliases_list)
-        return artist_name, aliases_list
+        aliases = aliases - {youtube_id}
+        if aliases:
+            logger.info('FoundAliases', youtube_id=youtube_id, name=artist_name, aliases=aliases)
+        else:
+            logger.info('NoAliasesFound', youtube_id=youtube_id, name=artist_name)
+        return artist_name, aliases
 
     def artist_has_tracks_overlap(self, youtube_id: str, tracks: set[str]) -> bool:
         with self._cache_ytm_request():

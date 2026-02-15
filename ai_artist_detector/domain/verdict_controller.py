@@ -3,6 +3,7 @@ from typing import TYPE_CHECKING
 
 from loguru import logger
 
+from ai_artist_detector.constants import DataSources
 from ai_artist_detector.lib.helpers import ttl_cache
 
 if TYPE_CHECKING:
@@ -14,6 +15,7 @@ if TYPE_CHECKING:
 class VerdictControllerService:
     def __init__(
         self,
+        enabled_sources: set[DataSources],
         soul_over_ai_service: SoulOverAiService,
         iimuzyka_top_service: IimuzykaTopService,
         verdicts_repository: VerdictsRepository,
@@ -22,18 +24,20 @@ class VerdictControllerService:
         self.iimuzyka_top_service = iimuzyka_top_service
         self.verdicts_repository = verdicts_repository
 
+        _sources = {
+            DataSources.SOUL_OVER_AI: self.soul_over_ai_service,
+            DataSources.IIMUZYKA_TOP: self.iimuzyka_top_service,
+        }
+
+        self._sources = {source: _sources[source] for source in enabled_sources}
+
         self._ai_artists: set[str] | None = None
         self._updated_at: datetime | None = None
 
     async def recalculate(self, ignore_aliases_cache: bool) -> None:
-        sources = {
-            'soul_over_ai': self.soul_over_ai_service,
-            'iimyzyka_top': self.iimuzyka_top_service,
-        }
-
         ai_artists: set[str] = set()
 
-        for source, service in sources.items():
+        for source, service in self._sources.items():
             old_artists_count = len(ai_artists)
             logger.info('RetrievingAiArtists', source=source)
             retrieved_artists = service.get_ai_artists(ignore_aliases_cache=ignore_aliases_cache)
