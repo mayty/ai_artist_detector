@@ -13,7 +13,9 @@ readme = "README.md"
 requires-python = "==3.14.*"
 dependencies = [
     "anyascii>=0.3.3",
+    "beautifulsoup4>=4.14.3",
     "click>=8.3.1",
+    "cloudscraper>=1.2.71",
     "fastapi>=0.129.0",
     "loguru>=0.7.3",
     "pydantic>=2.12.5",

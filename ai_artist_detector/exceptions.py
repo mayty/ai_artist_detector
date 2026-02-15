@@ -14,12 +14,6 @@ class RateLimitExceededError(ProjectError):
         self.body = body
 
 
-class TooManySearchMatchesError(ProjectError):
-    def __init__(self, query: str, matches: set[str]) -> None:
-        self.query = query
-        self.matches = matches
-
-
 class InvalidYoutubeMusicAccountTypeError(ProjectError):
     def __init__(self, youtube_id: str, reason: str) -> None:
         self.youtube_id = youtube_id
