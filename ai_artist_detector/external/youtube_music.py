@@ -1,6 +1,6 @@
 import string
 from contextlib import contextmanager
-from typing import overload, TYPE_CHECKING
+from typing import Literal, overload, TYPE_CHECKING
 from urllib.parse import unquote
 
 from anyascii import anyascii
@@ -94,8 +94,7 @@ class YouTubeMusicClient:
         finally:
             self.client._send_request = old_send_request  # noqa: SLF001
 
-    @rate_limit(rps=0.2)
-    def _get_ytm_response(self, youtube_id: str) -> dict:
+    def _get_ytm_profile(self, youtube_id: str) -> dict:
         try:
             return self.client.get_artist(youtube_id)
         except KeyError:
@@ -103,15 +102,45 @@ class YouTubeMusicClient:
 
         try:
             return self.client.get_user(youtube_id)
-        except KeyError as exc:
+        except KeyError:
             logger.debug('ChannelIsNotUser', youtube_id=youtube_id)
-            raise InvalidYoutubeMusicAccountTypeError(youtube_id, reason=str(exc)) from exc
+
+        logger.error('FailedToFetchYtmProfile', youtube_id=youtube_id)
+        return {}
+
+    def _get_songs(self, browse_id: str) -> set[str]:
+        response = self.client.get_playlist(browse_id)
+
+        songs: set[str] = set()
+        for track in response.get('tracks', []):
+            track_title = track.get('title')
+            if not track_title:
+                continue
+            songs.add(self._unescape_name(track_title))
+        return songs
+
+    @overload
+    def _get_ytm_response(self, youtube_id: str, type_: Literal['profile']) -> dict: ...
+
+    @overload
+    def _get_ytm_response(self, youtube_id: str, type_: Literal['playlist']) -> set[str]: ...
+
+    @rate_limit(rps=0.2)
+    def _get_ytm_response(self, youtube_id: str, type_: Literal['profile', 'playlist']) -> dict | set[str]:
+        logger.info('FetchingYoutubeMusicData', youtube_id=youtube_id, type_=type_)
+        match type_:
+            case 'profile':
+                return self._get_ytm_profile(youtube_id)
+            case 'playlist':
+                return self._get_songs(youtube_id)
+        msg = f'Invalid type: {type_}'
+        raise ValueError(msg)
 
     def get_ytm_id_aliases(self, youtube_id: str) -> tuple[str, list[str]]:
         logger.info('RetrievingYoutubeMusicAliases', youtube_id=youtube_id)
 
         with self._cache_ytm_request():
-            response = self._get_ytm_response(youtube_id)
+            response = self._get_ytm_response(youtube_id, type_='profile')
 
         artist_name = self._unescape_name(response['name'])
         if artist_name is None:
@@ -146,3 +175,34 @@ class YouTubeMusicClient:
         aliases_list = list(aliases - {youtube_id})
         logger.info('FoundAliases', youtube_id=youtube_id, name=artist_name, aliases=aliases_list)
         return artist_name, aliases_list
+
+    def artist_has_tracks_overlap(self, youtube_id: str, tracks: set[str]) -> bool:
+        with self._cache_ytm_request():
+            response = self._get_ytm_response(youtube_id, type_='profile')
+
+        songs_browse_id = response.get('songs', {}).get('browseId')
+        if not songs_browse_id:
+            logger.warning('NoSongsPlaylistFound', youtube_id=youtube_id)
+            return False
+
+        artist_songs = self._get_ytm_response(songs_browse_id, type_='playlist')
+
+        if not artist_songs:
+            logger.warning('NoSongsFound', youtube_id=youtube_id)
+            return False
+
+        logger.info(
+            'CheckingForTracksOverlap',
+            youtube_id=youtube_id,
+            known_tracks_count=len(tracks),
+            artist_songs_count=len(artist_songs),
+        )
+
+        for song in artist_songs:
+            for artist_track in tracks:
+                if self._names_match(song, artist_track):
+                    logger.info('FoundTracksOverlap', youtube_id=youtube_id, known_track=artist_track, song_title=song)
+                    return True
+
+        logger.info('NoTracksOverlap', youtube_id=youtube_id)
+        return False

@@ -6,7 +6,6 @@ from ai_artist_detector.exceptions import (
     InvalidYoutubeMusicAccountTypeError,
     RateLimitExceededError,
     RowNotFoundError,
-    TooManySearchMatchesError,
 )
 
 if TYPE_CHECKING:
@@ -92,8 +91,6 @@ class YouTubeAdapterService:
             pass
         else:
             logger.debug('UsingCachedSearchQuery', search_query=search_query, artist_ids=artist_ids)
-            if len(artist_ids) > 1:
-                raise TooManySearchMatchesError(search_query, artist_ids)
             return artist_ids
 
         if self.failed_rate_limit_count:
@@ -108,6 +105,7 @@ class YouTubeAdapterService:
             self.failed_rate_limit_count += 1
             return set()
         self.youtube_search_results_repository.set_artist_ids(search_query, artist_ids)
-        if len(artist_ids) > 1:
-            raise TooManySearchMatchesError(search_query, artist_ids)
         return artist_ids
+
+    def artist_has_songs_match(self, artist_id: str, artist_tracks: set[str]) -> bool:
+        return self.youtube_music_client.artist_has_tracks_overlap(artist_id, artist_tracks)

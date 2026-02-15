@@ -1,7 +1,7 @@
 from functools import cached_property
 from pathlib import Path
 
-from pydantic import AnyHttpUrl, BaseModel as PydanticBaseModel, Field
+from pydantic import AnyHttpUrl, BaseModel as PydanticBaseModel, Field, field_validator
 from pydantic_settings import SettingsConfigDict
 from yaml import full_load
 
@@ -41,6 +41,16 @@ class SoulOverAiConfig(BaseModel):
 class IimuzykaTopConfig(BaseModel):
     host: str = Field(default='iimuzyka.top', min_length=1, validate_default=True)
     timeout_seconds: int = Field(default=10, ge=0, validate_default=True)
+    cache_directory: Path = Field(default=Path('/app/data/iimuzyka_cache'), validate_default=True)
+    prioritize_cache: bool = Field(default=True, validate_default=True)
+
+    @field_validator('cache_directory', mode='after')
+    def _ensure_cache_directory_exists(cls, v: Path) -> Path:
+        if v.exists() and not v.is_dir():
+            msg = 'cache_directory must be a directory'
+            raise ValueError(msg)
+        v.mkdir(parents=True, exist_ok=True)
+        return v
 
 
 class SourcesConfig(BaseModel):
