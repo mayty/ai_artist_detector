@@ -6,7 +6,7 @@ from urllib.parse import unquote
 from anyascii import anyascii
 from loguru import logger
 
-from ai_artist_detector.exceptions import InvalidYoutubeMusicAccountTypeError
+from ai_artist_detector.exceptions import InvalidYoutubeMusicAccountTypeError, NoSongsFoundError
 from ai_artist_detector.lib.helpers import rate_limit, singular_cache
 
 if TYPE_CHECKING:
@@ -136,8 +136,9 @@ class YouTubeMusicClient:
         msg = f'Invalid type: {type_}'
         raise ValueError(msg)
 
-    def get_ytm_id_aliases(self, youtube_id: str) -> tuple[str, set[str]]:
+    def _get_ytm_id_aliases(self, youtube_id: str) -> tuple[str, set[str], bool]:
         logger.info('RetrievingYoutubeMusicAliases', youtube_id=youtube_id)
+        can_cache_results = True
 
         with self._cache_ytm_request():
             response = self._get_ytm_response(youtube_id, type_='profile')
@@ -161,6 +162,7 @@ class YouTubeMusicClient:
         song_results = response.get('songs', {}).get('results', [])
         if not song_results:
             logger.warning('NoSongsFound', youtube_id=youtube_id, artist_name=artist_name)
+            can_cache_results = False
 
         for song in song_results:
             aliases.update(self._get_alias_from_element(song, artist_name))
@@ -177,7 +179,16 @@ class YouTubeMusicClient:
             logger.info('FoundAliases', youtube_id=youtube_id, name=artist_name, aliases=aliases)
         else:
             logger.info('NoAliasesFound', youtube_id=youtube_id, name=artist_name)
-        return artist_name, aliases
+        return artist_name, aliases, can_cache_results
+
+    def get_ytm_id_aliases(self, youtube_id: str) -> tuple[str, set[str], bool]:
+        artist_name, aliases, can_cache_result = self._get_ytm_id_aliases(youtube_id)
+
+        if can_cache_result:
+            return artist_name, aliases, can_cache_result
+
+        logger.warning('RetryingAliasesRetrieval', youtube_id=youtube_id)
+        return self._get_ytm_id_aliases(youtube_id)
 
     def artist_has_tracks_overlap(self, youtube_id: str, tracks: set[str]) -> bool:
         with self._cache_ytm_request():
@@ -186,7 +197,7 @@ class YouTubeMusicClient:
         songs_browse_id = response.get('songs', {}).get('browseId')
         if not songs_browse_id:
             logger.warning('NoSongsPlaylistFound', youtube_id=youtube_id)
-            return False
+            raise NoSongsFoundError
 
         artist_songs = self._get_ytm_response(songs_browse_id, type_='playlist')
 

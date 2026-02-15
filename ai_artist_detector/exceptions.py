@@ -18,3 +18,6 @@ class InvalidYoutubeMusicAccountTypeError(ProjectError):
     def __init__(self, youtube_id: str, reason: str) -> None:
         self.youtube_id = youtube_id
         self.reason = reason
+
+
+class NoSongsFoundError(ProjectError): ...
