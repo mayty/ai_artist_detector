@@ -1,3 +1,4 @@
+import re
 from functools import cached_property
 from pathlib import Path
 
@@ -53,9 +54,22 @@ class IimuzykaTopConfig(BaseModel):
         return v
 
 
+class ExplicitDataSourceConfig(BaseModel):
+    artist_ids: set[str] = Field(default_factory=set, validate_default=True)
+
+    @field_validator('artist_ids', mode='after')
+    def validate_artist_ids(cls, v: set[str]) -> set[str]:
+        for artist_id in v:
+            if not re.match(r'^[A-Za-z0-9_-]{24}$', artist_id):
+                msg = f'Invalid artist ID format: {artist_id}'
+                raise ValueError(msg)
+        return v
+
+
 class SourcesConfig(BaseModel):
     soul_over_ai: SoulOverAiConfig = Field(default_factory=SoulOverAiConfig)
     iimuzyka_top: IimuzykaTopConfig = Field(default_factory=IimuzykaTopConfig)
+    explicit: ExplicitDataSourceConfig = Field(default_factory=ExplicitDataSourceConfig)
     enabled_sources: set[DataSources] = Field(default_factory=lambda: set(DataSources), validate_default=True)
 
 

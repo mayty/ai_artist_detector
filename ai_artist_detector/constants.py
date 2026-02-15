@@ -24,6 +24,7 @@ class ArtistStatuses(StrEnum):
 class DataSources(StrEnum):
     SOUL_OVER_AI = auto()
     IIMUZYKA_TOP = auto()
+    EXPLICIT = auto()
 
 
 class RedisNamespaces(StrEnum):
