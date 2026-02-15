@@ -21,5 +21,10 @@ class ArtistStatuses(StrEnum):
     UNKNOWN = auto()
 
 
+class DataSources(StrEnum):
+    SOUL_OVER_AI = auto()
+    IIMUZYKA_TOP = auto()
+
+
 class RedisNamespaces(StrEnum):
     VERDICTS = auto()

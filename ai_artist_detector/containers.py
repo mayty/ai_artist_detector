@@ -137,6 +137,7 @@ class Services:
     @cached_property
     def verdict_controller_service(self) -> VerdictControllerService:
         return VerdictControllerService(
+            enabled_sources=core.config.sources.enabled_sources,
             soul_over_ai_service=self.soul_over_ai_service,
             iimuzyka_top_service=self.iimyzyka_top_service,
             verdicts_repository=repositories.redis_verdicts_repository,

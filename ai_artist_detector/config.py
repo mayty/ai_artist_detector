@@ -5,7 +5,7 @@ from pydantic import AnyHttpUrl, BaseModel as PydanticBaseModel, Field, field_va
 from pydantic_settings import SettingsConfigDict
 from yaml import full_load
 
-from ai_artist_detector.constants import CONFIG_OVERRIDE_PATH, CONFIG_PATH
+from ai_artist_detector.constants import CONFIG_OVERRIDE_PATH, CONFIG_PATH, DataSources
 from ai_artist_detector.exceptions import (
     InvalidConfigTypeError,
 )
@@ -56,6 +56,7 @@ class IimuzykaTopConfig(BaseModel):
 class SourcesConfig(BaseModel):
     soul_over_ai: SoulOverAiConfig = Field(default_factory=SoulOverAiConfig)
     iimuzyka_top: IimuzykaTopConfig = Field(default_factory=IimuzykaTopConfig)
+    enabled_sources: set[DataSources] = Field(default_factory=lambda: set(DataSources), validate_default=True)
 
 
 class YouTubeConfig(BaseModel):
