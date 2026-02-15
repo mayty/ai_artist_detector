@@ -8,6 +8,7 @@ from ai_artist_detector.lib.helpers import ttl_cache
 
 if TYPE_CHECKING:
     from ai_artist_detector.data.redis.verdicts import VerdictsRepository
+    from ai_artist_detector.domain.data_source.explicit import ExplicitService
     from ai_artist_detector.domain.data_source.iimuzyka_top import IimuzykaTopService
     from ai_artist_detector.domain.data_source.soul_over_ai import SoulOverAiService
 
@@ -18,15 +19,15 @@ class VerdictControllerService:
         enabled_sources: set[DataSources],
         soul_over_ai_service: SoulOverAiService,
         iimuzyka_top_service: IimuzykaTopService,
+        explicit_service: ExplicitService,
         verdicts_repository: VerdictsRepository,
     ) -> None:
-        self.soul_over_ai_service = soul_over_ai_service
-        self.iimuzyka_top_service = iimuzyka_top_service
         self.verdicts_repository = verdicts_repository
 
         _sources = {
-            DataSources.SOUL_OVER_AI: self.soul_over_ai_service,
-            DataSources.IIMUZYKA_TOP: self.iimuzyka_top_service,
+            DataSources.SOUL_OVER_AI: soul_over_ai_service,
+            DataSources.IIMUZYKA_TOP: iimuzyka_top_service,
+            DataSources.EXPLICIT: explicit_service,
         }
 
         self._sources = {source: _sources[source] for source in enabled_sources}

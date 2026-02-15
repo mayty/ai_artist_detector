@@ -15,6 +15,7 @@ from ai_artist_detector.data.sqlite.iimuzyka_youtube_music_artist_matches import
 from ai_artist_detector.data.sqlite.youtube_handles_mapping import YouTubeHandlesRepository
 from ai_artist_detector.data.sqlite.youtube_music_aliases import YouTubeMusicAliasesRepository
 from ai_artist_detector.data.sqlite.youtube_search_results import YoutubeSearchResultsRepository
+from ai_artist_detector.domain.data_source.explicit import ExplicitService
 from ai_artist_detector.domain.data_source.iimuzyka_top import IimuzykaTopService
 from ai_artist_detector.domain.data_source.soul_over_ai import SoulOverAiService
 from ai_artist_detector.domain.verdict_controller import VerdictControllerService
@@ -135,11 +136,19 @@ class Services:
         )
 
     @cached_property
+    def explicit_service(self) -> ExplicitService:
+        return ExplicitService(
+            artist_ids=core.config.sources.explicit.artist_ids,
+            youtube_adapter_service=self.youtube_adapter_service,
+        )
+
+    @cached_property
     def verdict_controller_service(self) -> VerdictControllerService:
         return VerdictControllerService(
             enabled_sources=core.config.sources.enabled_sources,
             soul_over_ai_service=self.soul_over_ai_service,
             iimuzyka_top_service=self.iimyzyka_top_service,
+            explicit_service=self.explicit_service,
             verdicts_repository=repositories.redis_verdicts_repository,
         )
 
