@@ -5,6 +5,7 @@ from loguru import logger
 from starlette.status import HTTP_200_OK, HTTP_403_FORBIDDEN
 
 from ai_artist_detector.exceptions import RateLimitExceededError
+from ai_artist_detector.lib.web_helpers import names_match
 
 if TYPE_CHECKING:
     from ai_artist_detector.config import YouTubeConfig
@@ -63,7 +64,7 @@ class YouTubeClient:
     def find_artist_by_search_query(self, search_query: str) -> set[str]:
         self._raise_if_forbidden()
 
-        search_query = search_query.lower().strip()
+        search_query = search_query.lower().strip().removesuffix(' topic').strip().removesuffix(' -').strip()
         logger.info('SearchingYoutube', query=search_query)
 
         params = {
@@ -93,14 +94,6 @@ class YouTubeClient:
 
         artist_ids: set[str] = set()
 
-        if search_query.endswith(' topic'):
-            raw_query = search_query.removesuffix(' topic').strip().removesuffix(' -').strip()
-            name_candidates = {
-                raw_query + ' - topic',
-            }
-        else:
-            name_candidates = {search_query}
-
         for item in search_data['items']:
             if item['kind'] != 'youtube#searchResult':
                 continue
@@ -114,13 +107,11 @@ class YouTubeClient:
             title = snippet['title'].lower().strip()
             channel_title = snippet['channelTitle'].lower().strip()
 
-            artist_names = {
-                title,
-                channel_title,
-            }
-
-            if name_candidates & artist_names:
-                logger.debug('FoundArtist', artist_id=artist_id, artist_name=snippet['title'])
+            if names_match(search_query, title):
+                logger.debug('FoundArtist', query=search_query, artist_id=artist_id, artist_name=title)
+                artist_ids.add(artist_id)
+            elif names_match(search_query, channel_title):
+                logger.debug('FoundArtist', query=search_query, artist_id=artist_id, artist_name=channel_title)
                 artist_ids.add(artist_id)
 
         return artist_ids

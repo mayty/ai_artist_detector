@@ -112,6 +112,7 @@ class Services:
     @cached_property
     def youtube_adapter_service(self) -> YouTubeAdapterService:
         return YouTubeAdapterService(
+            config=core.config.external.youtube,
             youtube_client=external.youtube,
             youtube_music_client=external.youtube_music,
             youtube_handles_repository=repositories.youtube_handles_repository,

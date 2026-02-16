@@ -20,6 +20,7 @@ class SoulOverAiService:
         ai_artists = self.soul_over_ai_client.retrieve_ai_youtube_channels()
         ai_ids: set[str] = set()
 
+        self.youtube_adapter_service.reset_stats()
         for raw_artist_id in ai_artists:
             if raw_artist_id.startswith('@'):
                 artist_id = self.youtube_adapter_service.get_artist_id_from_handle(raw_artist_id)
@@ -35,6 +36,14 @@ class SoulOverAiService:
             )
             ai_ids.update(artist_aliases)
 
-        logger.info('FailedRequestsCount', rate_limit=self.youtube_adapter_service.failed_rate_limit_count)
+        logger.info(
+            'RetrievalStats',
+            rate_limit_errors=self.youtube_adapter_service.failed_rate_limit_count,
+            artists_count=len(ai_artists),
+            ytm_ids_count=len(ai_ids),
+            aliases_update=self.youtube_adapter_service.aliases_cache_updated_count,
+            search_update=self.youtube_adapter_service.search_cache_updated_count,
+            handles_update=self.youtube_adapter_service.handles_cache_updated_count,
+        )
 
         return ai_ids

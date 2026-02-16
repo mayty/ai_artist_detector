@@ -1,13 +1,11 @@
-import string
 from contextlib import contextmanager
 from typing import Literal, overload, TYPE_CHECKING
-from urllib.parse import unquote
 
-from anyascii import anyascii
 from loguru import logger
 
 from ai_artist_detector.exceptions import InvalidYoutubeMusicAccountTypeError, NoSongsFoundError
 from ai_artist_detector.lib.helpers import rate_limit, singular_cache
+from ai_artist_detector.lib.web_helpers import names_match, normalize_name, unescape_name
 
 if TYPE_CHECKING:
     from collections.abc import Generator
@@ -19,47 +17,6 @@ class YouTubeMusicClient:
     def __init__(self, client: YTMusic) -> None:
         self.client = client
 
-    @overload
-    def _unescape_name(self, name: str) -> str: ...
-
-    @overload
-    def _unescape_name(self, name: None) -> None: ...
-
-    def _unescape_name(self, name: str | None) -> str | None:
-        if name is None:
-            return name
-        return unquote(name)
-
-    @overload
-    def _normalize_name(self, name: str) -> str | None: ...
-
-    @overload
-    def _normalize_name(self, name: None) -> None: ...
-
-    def _normalize_name(self, name: str | None) -> str | None:
-        if name is None:
-            return name
-        normalized = anyascii(self._unescape_name(name)).lower().replace('&', 'and').strip().removeprefix('the ')
-
-        return ''.join(a for a in normalized if a not in string.punctuation and a not in string.whitespace) or None
-
-    def _get_name_variations(self, name: str) -> set[str]:
-        normalized_base = self._normalize_name(name)
-
-        return {
-            *({normalized_base} if normalized_base else []),
-            *(normalized for suffix in ['official'] if (normalized := self._normalize_name(f'{name} {suffix}'))),
-        }
-
-    def _names_match(self, name_a: str, name_b: str) -> bool:
-        normalized_a = self._normalize_name(name_a)
-        normalized_b = self._normalize_name(name_b)
-
-        if normalized_a is None or normalized_b is None:
-            return False
-
-        return normalized_a in normalized_b or normalized_b in normalized_a
-
     def _get_alias_from_element(self, element: dict, artist_name: str, *, validate_name: bool = True) -> Generator[str]:
         artists = element['artists']
         if len(artists) == 1:  # If an element has only one artist, assume it's the target artist
@@ -69,7 +26,7 @@ class YouTubeMusicClient:
             candidate_name = artists[0]['name']
             if candidate_name is None:
                 return
-            if validate_name and not self._names_match(artist_name, candidate_name):
+            if validate_name and not names_match(artist_name, candidate_name):
                 return
             yield alias
         else:
@@ -77,7 +34,7 @@ class YouTubeMusicClient:
                 candidate_name = artist['name']
                 if candidate_name is None:
                     continue
-                if not self._names_match(artist_name, candidate_name):
+                if not names_match(artist_name, candidate_name):
                     continue
                 alias = artist['id']
                 if alias is None:
@@ -116,7 +73,7 @@ class YouTubeMusicClient:
             track_title = track.get('title')
             if not track_title:
                 continue
-            songs.add(self._unescape_name(track_title))
+            songs.add(unescape_name(track_title))
         return songs
 
     @overload
@@ -137,13 +94,13 @@ class YouTubeMusicClient:
         raise ValueError(msg)
 
     def get_ytm_id_aliases(self, youtube_id: str) -> tuple[str, set[str], bool]:
-        logger.info('RetrievingYoutubeMusicAliases', youtube_id=youtube_id)
+        logger.debug('RetrievingYoutubeMusicAliases', youtube_id=youtube_id)
         can_cache_empty_results = True
 
         with self._cache_ytm_request():
             response = self._get_ytm_response(youtube_id, type_='profile')
 
-        artist_name = self._unescape_name(response.get('name'))
+        artist_name = unescape_name(response.get('name'))
         if artist_name is None:
             raise InvalidYoutubeMusicAccountTypeError(youtube_id, reason='No artist name found')
 
@@ -151,7 +108,7 @@ class YouTubeMusicClient:
             'FetchingForName',
             youtube_id=youtube_id,
             artist_name=artist_name,
-            normalized_name=self._normalize_name(artist_name),
+            normalized_name=normalize_name(artist_name),
         )
 
         aliases: set[str] = set()
@@ -178,19 +135,26 @@ class YouTubeMusicClient:
         if aliases:
             logger.info('FoundAliases', youtube_id=youtube_id, name=artist_name, aliases=aliases)
         else:
-            logger.info('NoAliasesFound', youtube_id=youtube_id, name=artist_name)
+            logger.debug('NoAliasesFound', youtube_id=youtube_id, name=artist_name)
         return artist_name, aliases, can_cache_empty_results
 
     def artist_has_tracks_overlap(self, youtube_id: str, tracks: set[str]) -> bool:
         with self._cache_ytm_request():
             response = self._get_ytm_response(youtube_id, type_='profile')
 
-        songs_browse_id = response.get('songs', {}).get('browseId')
-        if not songs_browse_id:
-            logger.warning('NoSongsPlaylistFound', youtube_id=youtube_id)
+        songs_data = response.get('songs', {})
+        if not songs_data:
+            logger.warning('NoSongsFound', youtube_id=youtube_id)
             raise NoSongsFoundError
 
-        artist_songs = self._get_ytm_response(songs_browse_id, type_='playlist')
+        if songs_browse_id := songs_data.get('browseId'):
+            artist_songs = self._get_ytm_response(songs_browse_id, type_='playlist')
+        else:
+            # Can happen if an artist has very few songs
+            logger.debug('NoSongsBrowseIdFound', youtube_id=youtube_id)
+            artist_songs = {
+                unescape_name(song_title) for song in songs_data.get('results', []) if (song_title := song.get('title'))
+            }
 
         if not artist_songs:
             logger.warning('NoSongsFound', youtube_id=youtube_id)
@@ -205,7 +169,7 @@ class YouTubeMusicClient:
 
         for song in artist_songs:
             for artist_track in tracks:
-                if self._names_match(song, artist_track):
+                if names_match(song, artist_track):
                     logger.info('FoundTracksOverlap', youtube_id=youtube_id, known_track=artist_track, song_title=song)
                     return True
 

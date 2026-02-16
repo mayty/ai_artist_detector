@@ -27,5 +27,11 @@ class DataSources(StrEnum):
     EXPLICIT = auto()
 
 
+class QueryUpdatePolicies(StrEnum):
+    IGNORE = auto()
+    UPDATE_EMPTY = auto()
+    UPDATE_ALL = auto()
+
+
 class RedisNamespaces(StrEnum):
     VERDICTS = auto()

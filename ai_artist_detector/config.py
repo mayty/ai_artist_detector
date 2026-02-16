@@ -6,7 +6,7 @@ from pydantic import AnyHttpUrl, BaseModel as PydanticBaseModel, Field, field_va
 from pydantic_settings import SettingsConfigDict
 from yaml import full_load
 
-from ai_artist_detector.constants import CONFIG_OVERRIDE_PATH, CONFIG_PATH, DataSources
+from ai_artist_detector.constants import CONFIG_OVERRIDE_PATH, CONFIG_PATH, DataSources, QueryUpdatePolicies
 from ai_artist_detector.exceptions import (
     InvalidConfigTypeError,
 )
@@ -80,6 +80,7 @@ class YouTubeConfig(BaseModel):
     search_route: str = Field(default='/youtube/v3/search', min_length=1, validate_default=True)
     timeout_seconds: int = Field(default=10, ge=0, validate_default=True)
     enabled: bool = Field(default=True, validate_default=True)
+    query_update_policy: QueryUpdatePolicies = Field(default=QueryUpdatePolicies.IGNORE, validate_default=True)
 
     @cached_property
     def channels_endpoint(self) -> str:

@@ -25,31 +25,36 @@ class YoutubeSearchResultsRepository:
             if table_exists:
                 return
 
-            connection.execute(f'CREATE TABLE {self.tablename} (query TEXT PRIMARY KEY, channel_ids TEXT)')
+            connection.execute(
+                f'CREATE TABLE {self.tablename} (query TEXT PRIMARY KEY, channel_ids TEXT, version INTEGER)'
+            )
             connection.commit()
 
-    def get_or_raise_artist_ids(self, query: str) -> set[str]:
+    def get_or_raise_artist_ids(self, query: str) -> tuple[set[str], int]:
         """
         Return artist IDs if a record exists.
         Raises `RowNotFoundError` otherwise.
         """
         with self.connection_manager as connection:
             row = connection.execute(
-                f'SELECT channel_ids FROM {self.tablename} WHERE query=:query',
+                f'SELECT channel_ids, version FROM {self.tablename} WHERE query=:query',
                 {'query': query},
             ).fetchone()
         if row is None:
             msg = f'YouTube channel_ids for {query} not found'
             raise RowNotFoundError(msg)
-        return set(json.loads(row[0]))
+        return set(json.loads(row[0])), row[1]
 
-    def set_artist_ids(self, query: str, youtube_paths: set[str]) -> None:
+    def set_artist_ids(self, query: str, youtube_paths: set[str], version: int) -> None:
         with self.connection_manager as connection:
             connection.execute(
-                f'INSERT INTO {self.tablename} (query, channel_ids) VALUES (:query, :channel_ids)',
+                f"""
+                    INSERT INTO {self.tablename} (query, channel_ids, version) VALUES (:query, :channel_ids, :version)
+                    ON CONFLICT DO UPDATE SET channel_ids=excluded.channel_ids, version=excluded.version""",
                 {
                     'query': query,
                     'channel_ids': json.dumps(list(youtube_paths), ensure_ascii=False),
+                    'version': version,
                 },
             )
             connection.commit()
