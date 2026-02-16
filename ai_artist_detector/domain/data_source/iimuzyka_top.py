@@ -59,9 +59,7 @@ class IimuzykaTopService:
             rate_limit_errors=self.youtube_adapter_service.failed_rate_limit_count,
             artists_count=len(artists),
             ytm_ids_count=len(ytm_ids),
-            aliases_update=self.youtube_adapter_service.aliases_cache_updated_count,
-            search_update=self.youtube_adapter_service.search_cache_updated_count,
-            handles_update=self.youtube_adapter_service.handles_cache_updated_count,
+            **self.youtube_adapter_service.stats,
             match_status_updated_count=self._match_status_updated_count,
         )
 
@@ -107,12 +105,13 @@ class IimuzykaTopService:
         try:
             is_match = self.youtube_adapter_service.artist_has_songs_match(artist_id, artist_tracks)
         except NoSongsFoundError:
-            logger.warning('NoSongsPlaylistFound', iimuzyka_artist_id=iimuzyka_artist_id, youtube_id=artist_id)
+            logger.warning('NoSongsDataFound', iimuzyka_artist_id=iimuzyka_artist_id, youtube_id=artist_id)
             is_match = False
         else:
             self.iimuzyka_youtube_music_artist_matches_repository.set_match_status(
                 iimuzyka_artist_id, artist_id, is_match
             )
+            self._match_status_updated_count += 1
         return is_match
 
     def _get_youtube_music_ids(

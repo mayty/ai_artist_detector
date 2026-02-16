@@ -34,17 +34,43 @@ class YouTubeAdapterService:
         self.youtube_handles_repository = youtube_handles_repository
         self.youtube_music_aliases_repository = youtube_music_aliases_repository
         self.youtube_search_results_repository = youtube_search_results_repository
+
         self._failed_rate_limit_count = 0
         self._total_failed_rate_limit_count = 0
+
         self.handles_cache_updated_count = 0
+        self.handles_requested = 0
+
         self.aliases_cache_updated_count = 0
+        self.aliases_requested = 0
+
         self.search_cache_updated_count = 0
+        self.search_requested = 0
+
+        self.song_matches_requested = 0
 
     def reset_stats(self) -> None:
         self._failed_rate_limit_count = 0
         self.handles_cache_updated_count = 0
+        self.handles_requested = 0
         self.aliases_cache_updated_count = 0
+        self.aliases_requested = 0
         self.search_cache_updated_count = 0
+        self.search_requested = 0
+        self.song_matches_requested = 0
+
+    @property
+    def stats(self) -> dict[str, int]:
+        return {
+            'failed_rate_limit_count': self._failed_rate_limit_count,
+            'aliases_cache_updated_count': self.aliases_cache_updated_count,
+            'aliases_requested': self.aliases_requested,
+            'handles_cache_updated_count': self.handles_cache_updated_count,
+            'handles_requested': self.handles_requested,
+            'search_cache_updated_count': self.search_cache_updated_count,
+            'search_requested': self.search_requested,
+            'song_matches_requested': self.song_matches_requested,
+        }
 
     @property
     def failed_rate_limit_count(self) -> int:
@@ -71,6 +97,7 @@ class YouTubeAdapterService:
             logger.error('RateLimitExceeded', artist_handle=artist_handle)
             return None
 
+        self.handles_requested += 1
         try:
             artist_id = self.youtube_client.convert_youtube_handle_to_id(artist_handle)
         except RateLimitExceededError:
@@ -96,6 +123,7 @@ class YouTubeAdapterService:
                 logger.debug('UsingCachedAliases', artist_id=artist_id, aliases=aliases)
                 return aliases
 
+        self.aliases_requested += 1
         try:
             artist_name, aliases, can_cache_empty_result = self.youtube_music_client.get_ytm_id_aliases(artist_id)
         except InvalidYoutubeMusicAccountTypeError as exc:
@@ -132,6 +160,7 @@ class YouTubeAdapterService:
                 )
                 return cached_artist_ids
 
+        self.search_requested += 1
         if self._total_failed_rate_limit_count:
             logger.error('RateLimitExceeded', search_query=search_query)
             self.failed_rate_limit_count += 1
@@ -148,4 +177,5 @@ class YouTubeAdapterService:
         return artist_ids
 
     def artist_has_songs_match(self, artist_id: str, artist_tracks: set[str]) -> bool:
+        self.song_matches_requested += 1
         return self.youtube_music_client.artist_has_tracks_overlap(artist_id, artist_tracks)

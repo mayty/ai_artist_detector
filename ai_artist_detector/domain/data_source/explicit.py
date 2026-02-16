@@ -31,9 +31,7 @@ class ExplicitService:
             rate_limit_errors=self.youtube_adapter_service.failed_rate_limit_count,
             artists_count=len(self.artist_ids),
             ytm_ids_count=len(artist_ids),
-            aliases_update=self.youtube_adapter_service.aliases_cache_updated_count,
-            search_update=self.youtube_adapter_service.search_cache_updated_count,
-            handles_update=self.youtube_adapter_service.handles_cache_updated_count,
+            **self.youtube_adapter_service.stats,
         )
 
         return artist_ids

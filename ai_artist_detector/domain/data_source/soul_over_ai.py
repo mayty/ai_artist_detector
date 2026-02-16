@@ -41,9 +41,7 @@ class SoulOverAiService:
             rate_limit_errors=self.youtube_adapter_service.failed_rate_limit_count,
             artists_count=len(ai_artists),
             ytm_ids_count=len(ai_ids),
-            aliases_update=self.youtube_adapter_service.aliases_cache_updated_count,
-            search_update=self.youtube_adapter_service.search_cache_updated_count,
-            handles_update=self.youtube_adapter_service.handles_cache_updated_count,
+            **self.youtube_adapter_service.stats,
         )
 
         return ai_ids
