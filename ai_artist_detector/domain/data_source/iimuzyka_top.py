@@ -28,6 +28,8 @@ class IimuzykaTopService:
         self.iimuzyka_ids_mapping_repository = iimuzyka_ids_mapping_repository
         self.iimuzyka_youtube_music_artist_matches_repository = iimuzyka_youtube_music_artist_matches_repository
 
+        self._match_status_updated_count = 0
+
     def get_ai_artists(self, ignore_aliases_cache: bool) -> set[str]:
         logger.info('RetrievingInitialPage')
         page = self.iimyzyka_top_client.get_page()
@@ -60,6 +62,7 @@ class IimuzykaTopService:
             aliases_update=self.youtube_adapter_service.aliases_cache_updated_count,
             search_update=self.youtube_adapter_service.search_cache_updated_count,
             handles_update=self.youtube_adapter_service.handles_cache_updated_count,
+            match_status_updated_count=self._match_status_updated_count,
         )
 
         return ytm_ids
