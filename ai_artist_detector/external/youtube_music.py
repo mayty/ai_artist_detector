@@ -95,7 +95,7 @@ class YouTubeMusicClient:
 
     def get_ytm_id_aliases(self, youtube_id: str) -> tuple[str, set[str], bool]:
         logger.debug('RetrievingYoutubeMusicAliases', youtube_id=youtube_id)
-        can_cache_empty_results = True
+        can_cache_empty_results = False
 
         with self._cache_ytm_request():
             response = self._get_ytm_response(youtube_id, type_='profile')
@@ -117,15 +117,18 @@ class YouTubeMusicClient:
             aliases.add(channel_id)
 
         song_results = response.get('songs', {}).get('results', [])
-        if not song_results:
+        if song_results:
+            can_cache_empty_results = True
+        else:
             logger.warning('NoSongsFound', youtube_id=youtube_id, artist_name=artist_name)
-            can_cache_empty_results = False
 
         for song in song_results:
             aliases.update(self._get_alias_from_element(song, artist_name))
 
         video_results = response.get('videos', {}).get('results', [])
-        if not video_results:
+        if video_results:
+            can_cache_empty_results = True
+        else:
             logger.warning('NoVideosFound', youtube_id=youtube_id, artist_name=artist_name)
 
         for video in video_results:
