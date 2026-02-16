@@ -42,6 +42,8 @@ class IimuzykaTopService:
 
         ytm_ids: set[str] = set()
 
+        self.youtube_adapter_service.reset_stats()
+
         for artist_id, artist_tracks in artists.items():
             with logger.contextualize(artist_id=artist_id):
                 ytm_ids.update(
@@ -50,7 +52,15 @@ class IimuzykaTopService:
                     )
                 )
 
-        logger.info('FailedRequestsCount', rate_limit=self.youtube_adapter_service.failed_rate_limit_count)
+        logger.info(
+            'RetrievalStats',
+            rate_limit_errors=self.youtube_adapter_service.failed_rate_limit_count,
+            artists_count=len(artists),
+            ytm_ids_count=len(ytm_ids),
+            aliases_update=self.youtube_adapter_service.aliases_cache_updated_count,
+            search_update=self.youtube_adapter_service.search_cache_updated_count,
+            handles_update=self.youtube_adapter_service.handles_cache_updated_count,
+        )
 
         return ytm_ids
 
