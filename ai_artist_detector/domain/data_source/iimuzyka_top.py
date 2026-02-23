@@ -46,8 +46,8 @@ class IimuzykaTopService:
 
         self.youtube_adapter_service.reset_stats()
 
-        for artist_id, artist_tracks in artists.items():
-            with logger.contextualize(artist_id=artist_id):
+        for i, (artist_id, artist_tracks) in enumerate(artists.items(), 1):
+            with logger.contextualize(artist_id=artist_id, progress=f'{i}/{len(artists)}'):
                 ytm_ids.update(
                     self._get_artist_youtube_music_ids(
                         artist_id, artist_tracks, ignore_aliases_cache=ignore_aliases_cache
