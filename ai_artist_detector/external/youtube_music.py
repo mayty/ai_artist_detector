@@ -3,7 +3,13 @@ from typing import Literal, overload, TYPE_CHECKING
 
 from loguru import logger
 
-from ai_artist_detector.exceptions import InvalidYoutubeMusicAccountTypeError, NoSongsFoundError
+from ai_artist_detector.exceptions import (
+    InvalidYoutubeMusicAccountTypeError,
+    MatchingNotImplementedError,
+    NoSongsFoundError,
+    PlaylistsNotFoundError,
+    SinglesNotFoundError,
+)
 from ai_artist_detector.lib.helpers import rate_limit, singular_cache
 from ai_artist_detector.lib.web_helpers import names_match, normalize_name, unescape_name
 
@@ -65,25 +71,28 @@ class YouTubeMusicClient:
         logger.error('FailedToFetchYtmProfile', youtube_id=youtube_id)
         return {}
 
-    def _get_songs(self, browse_id: str) -> set[str]:
+    def _get_songs(self, browse_id: str) -> dict[str, set[tuple[str, str]]]:
         response = self.client.get_playlist(browse_id)
 
-        songs: set[str] = set()
+        songs: dict[str, set[tuple[str, str]]] = {}
         for track in response.get('tracks', []):
             track_title = track.get('title')
+            artists = {(unescape_name(artist['name']), artist['id']) for artist in track['artists']}
             if not track_title:
                 continue
-            songs.add(unescape_name(track_title))
+            songs[unescape_name(track_title)] = artists
         return songs
 
     @overload
     def _get_ytm_response(self, youtube_id: str, type_: Literal['profile']) -> dict: ...
 
     @overload
-    def _get_ytm_response(self, youtube_id: str, type_: Literal['playlist']) -> set[str]: ...
+    def _get_ytm_response(self, youtube_id: str, type_: Literal['playlist']) -> dict[str, set[tuple[str, str]]]: ...
 
     @rate_limit(rps=0.2)
-    def _get_ytm_response(self, youtube_id: str, type_: Literal['profile', 'playlist']) -> dict | set[str]:
+    def _get_ytm_response(
+        self, youtube_id: str, type_: Literal['profile', 'playlist']
+    ) -> dict | dict[str, set[tuple[str, str]]]:
         logger.info('FetchingYoutubeMusicData', youtube_id=youtube_id, type_=type_)
         match type_:
             case 'profile':
@@ -141,40 +150,99 @@ class YouTubeMusicClient:
             logger.debug('NoAliasesFound', youtube_id=youtube_id, name=artist_name)
         return artist_name, aliases, can_cache_empty_results
 
-    def artist_has_tracks_overlap(self, youtube_id: str, tracks: set[str]) -> bool:
-        with self._cache_ytm_request():
-            response = self._get_ytm_response(youtube_id, type_='profile')
-
-        songs_data = response.get('songs', {})
-        if not songs_data:
-            logger.warning('NoSongsFound', youtube_id=youtube_id)
-            raise NoSongsFoundError
-
-        if songs_browse_id := songs_data.get('browseId'):
-            artist_songs = self._get_ytm_response(songs_browse_id, type_='playlist')
-        else:
-            # Can happen if an artist has very few songs
-            logger.debug('NoSongsBrowseIdFound', youtube_id=youtube_id)
-            artist_songs = {
-                unescape_name(song_title) for song in songs_data.get('results', []) if (song_title := song.get('title'))
-            }
-
-        if not artist_songs:
-            logger.warning('NoSongsFound', youtube_id=youtube_id)
+    def _has_song_overlaps(self, known_tracks: set[str], tracks_to_test: set[str]) -> bool:
+        if not tracks_to_test:
+            logger.warning('NoSongsFound')
             return False
 
         logger.info(
             'CheckingForTracksOverlap',
-            youtube_id=youtube_id,
-            known_tracks_count=len(tracks),
-            artist_songs_count=len(artist_songs),
+            known_tracks_count=len(known_tracks),
+            artist_songs_count=len(tracks_to_test),
         )
 
-        for song in artist_songs:
-            for artist_track in tracks:
+        for song in tracks_to_test:
+            for artist_track in known_tracks:
                 if names_match(song, artist_track):
-                    logger.info('FoundTracksOverlap', youtube_id=youtube_id, known_track=artist_track, song_title=song)
+                    logger.info('FoundTracksOverlap', known_track=artist_track, song_title=song)
                     return True
 
-        logger.info('NoTracksOverlap', youtube_id=youtube_id)
+        logger.info('NoTracksOverlap')
+        return False
+
+    def _get_overlap_by_songs(self, response: dict, tracks: set[str]) -> bool:
+        songs_data = response.get('songs', {})
+        if not songs_data:
+            raise NoSongsFoundError
+
+        if songs_browse_id := songs_data.get('browseId'):
+            artist_songs = set(self._get_ytm_response(songs_browse_id, type_='playlist').keys())
+        else:
+            # Can happen if an artist has very few songs
+            logger.debug('NoSongsBrowseIdFound')
+            artist_songs = {
+                unescape_name(song_title) for song in songs_data.get('results', []) if (song_title := song.get('title'))
+            }
+
+        return self._has_song_overlaps(tracks, artist_songs)
+
+    def _get_overlap_by_singles(self, response: dict, tracks: set[str]) -> bool:
+        singles_data = response.get('singles', {})
+        if not singles_data or 'results' not in singles_data or not singles_data['results']:
+            raise SinglesNotFoundError
+
+        for single_data in singles_data['results']:
+            single = unescape_name(single_data['title'])
+            for known_song in tracks:
+                if names_match(known_song, single):
+                    logger.info('FoundTracksOverlap', known_track=known_song, song_title=single)
+                    return True
+        return False
+
+    def _get_overlap_by_playlist(self, response: dict, tracks: set[str]) -> bool:
+        playlists_data = response.get('playlists', {})
+        if not playlists_data or 'results' not in playlists_data or not playlists_data['results']:
+            raise PlaylistsNotFoundError
+
+        artist_name = unescape_name(response.get('name'))
+        assert artist_name is not None
+
+        for playlist in playlists_data['results']:
+            playlist_id = playlist.get('playlistId')
+            all_songs = self._get_ytm_response(playlist_id, type_='playlist')
+            for song, artists_data in all_songs.items():
+                for artist_name, _ in artists_data:
+                    if not names_match(artist_name, artist_name):
+                        continue
+                    break
+                else:
+                    continue
+
+                for known_song in tracks:
+                    if names_match(known_song, song):
+                        logger.info('FoundTracksOverlap', known_track=known_song, song_title=song)
+                        return True
+
+        return False
+
+    def artist_has_tracks_overlap(self, youtube_id: str, tracks: set[str]) -> bool:
+        with self._cache_ytm_request():
+            response = self._get_ytm_response(youtube_id, type_='profile')
+
+        for handler, handler_name, exc_type in (
+            (self._get_overlap_by_singles, 'singles_section', SinglesNotFoundError),
+            (self._get_overlap_by_songs, 'songs_section', NoSongsFoundError),
+            (self._get_overlap_by_playlist, 'playlists_section', PlaylistsNotFoundError),
+        ):
+            try:
+                with logger.contextualize(youtube_id=youtube_id, source=handler_name):
+                    if handler(response, tracks):
+                        return True
+            except exc_type:
+                pass
+
+        if bool(response.get('videos', {}).get('results', [])):
+            # Video overlap check not implemented yet
+            raise MatchingNotImplementedError
+
         return False
