@@ -1,13 +1,13 @@
-FROM python:3.14.2-alpine3.22 AS base
+FROM python:3.14.3-alpine3.23 AS base
 
-ARG UV_VERSION=0.9.27
+ARG UV_VERSION=0.11.2
 ENV SERVER_PORT=8080
 ENV UV_PYTHON=/usr/local/bin/python
 ENV UV_LINK_MODE=copy
 
 RUN apk update && apk upgrade && apk add --no-cache curl make gcc g++ libc-dev musl musl-dev sqlite
 
-COPY --from=redis:8.4.0-alpine3.22 /usr/local/bin/redis-cli /usr/local/bin/redis-cli
+COPY --from=redis:8.6.2-alpine3.23 /usr/local/bin/redis-cli /usr/local/bin/redis-cli
 
 RUN curl -LsSf https://astral.sh/uv/${UV_VERSION}/install.sh | sh
 

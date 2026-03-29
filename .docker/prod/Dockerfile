@@ -1,6 +1,6 @@
-FROM python:3.14.2-alpine3.22 AS base
+FROM python:3.14.3-alpine3.23 AS base
 
-ARG UV_VERSION=0.9.27
+ARG UV_VERSION=0.11.2
 ARG UV_NO_MANAGED_PYTHON=1
 ENV PYTHONOPTIMIZE=2
 
@@ -27,7 +27,7 @@ RUN uv export \
 RUN uv build --wheel
 RUN pip install -r requirements.txt
 
-FROM python:3.14.2-alpine3.22
+FROM python:3.14.3-alpine3.23
 
 ENV PYTHONOPTIMIZE=2
 ENV SERVER_PORT=8080
@@ -35,7 +35,7 @@ ENV SERVER_PORT=8080
 RUN apk update && apk upgrade && apk add --no-cache curl sqlite
 ENV PATH="/root/.local/bin:${PATH}"
 
-COPY --from=redis:8.4.0-alpine3.22 /usr/local/bin/redis-cli /usr/local/bin/redis-cli
+COPY --from=redis:8.6.2-alpine3.23 /usr/local/bin/redis-cli /usr/local/bin/redis-cli
 
 WORKDIR /app
 
