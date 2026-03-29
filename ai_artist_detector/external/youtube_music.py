@@ -72,7 +72,13 @@ class YouTubeMusicClient:
         return {}
 
     def _get_songs(self, browse_id: str) -> dict[str, set[tuple[str, str]]]:
-        response = self.client.get_playlist(browse_id)
+        try:
+            response = self.client.get_playlist(browse_id)
+        except KeyError as exc:
+            if exc.args[0] == 'secondSubtitle':  # https://github.com/sigma67/ytmusicapi/issues/892
+                logger.error('FailedToParsePlaylist', browse_id=browse_id)
+                return {}
+            raise
 
         songs: dict[str, set[tuple[str, str]]] = {}
         for track in response.get('tracks', []):
