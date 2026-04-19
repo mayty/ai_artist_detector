@@ -7,31 +7,31 @@ find = {}
 
 [project]
 name = "ai_artist_detector"
-version = "0.1.0"
+version = "0.2.0"
 description = "Add your description here"
 readme = "README.md"
 requires-python = "==3.14.*"
 dependencies = [
     "anyascii>=0.3.3",
     "beautifulsoup4>=4.14.3",
-    "click>=8.3.1",
+    "click>=8.3.2",
     "cloudscraper>=1.2.71",
-    "fastapi>=0.132.0",
+    "fastapi>=0.136.0",
     "loguru>=0.7.3",
-    "pydantic>=2.12.5",
+    "pydantic>=2.13.2",
     "pydantic-settings>=2.13.1",
     "pyyaml>=6.0.3",
-    "redis>=7.2.0",
-    "requests>=2.32.5",
-    "uvicorn>=0.41.0",
+    "redis>=7.4.0",
+    "requests>=2.33.1",
+    "uvicorn>=0.44.0",
     "ytmusicapi>=1.11.5",
 ]
 
 [dependency-groups]
 dev = [
-    "pyrefly>=0.54.0",
-    "ruff>=0.15.2",
-    "types-pyyaml>=6.0.12.20250915",
+    "pyrefly>=0.61.1",
+    "ruff>=0.15.11",
+    "types-pyyaml>=6.0.12.20260408",
     "types-redis>=4.6.0.20241004",
 ]
 
