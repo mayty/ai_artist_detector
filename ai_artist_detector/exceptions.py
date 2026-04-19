@@ -20,4 +20,13 @@ class InvalidYoutubeMusicAccountTypeError(ProjectError):
         self.reason = reason
 
 
+class MatchingNotImplementedError(ProjectError): ...
+
+
+class PlaylistsNotFoundError(ProjectError): ...
+
+
+class SinglesNotFoundError(ProjectError): ...
+
+
 class NoSongsFoundError(ProjectError): ...
