@@ -1,6 +1,6 @@
 FROM python:3.14.3-alpine3.23 AS base
 
-ARG UV_VERSION=0.11.2
+ARG UV_VERSION=0.11.7
 ENV SERVER_PORT=8080
 ENV UV_PYTHON=/usr/local/bin/python
 ENV UV_LINK_MODE=copy
