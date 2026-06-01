@@ -4,4 +4,4 @@ external:
 sqlite:
   file_location: /app/data/data.sqlite
 redis:
-  host: redis
+  host: localhost

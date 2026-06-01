@@ -14,25 +14,25 @@ requires-python = "==3.14.*"
 dependencies = [
     "anyascii>=0.3.3",
     "beautifulsoup4>=4.14.3",
-    "click>=8.3.2",
+    "click>=8.4.1",
     "cloudscraper>=1.2.71",
-    "fastapi>=0.136.0",
+    "fastapi>=0.136.3",
     "loguru>=0.7.3",
-    "pydantic>=2.13.2",
-    "pydantic-settings>=2.13.1",
+    "pydantic>=2.13.4",
+    "pydantic-settings>=2.14.1",
     "pyyaml>=6.0.3",
-    "redis>=7.4.0",
-    "requests>=2.33.1",
-    "uvicorn>=0.44.0",
-    "ytmusicapi>=1.11.5",
+    "redis>=8.0.0",
+    "requests>=2.34.2",
+    "uvicorn>=0.48.0",
+    "ytmusicapi>=1.12.0",
 ]
 
 [dependency-groups]
 dev = [
-    "pyrefly>=0.61.1",
-    "ruff>=0.15.11",
-    "types-pyyaml>=6.0.12.20260408",
-    "types-redis>=4.6.0.20241004",
+    "pyrefly>=1.0.0",
+    "ruff>=0.15.15",
+    "types-pyyaml>=6.0.12.20260518",
+    "types-redis>=4.6.0.20241004"
 ]
 
 [project.scripts]

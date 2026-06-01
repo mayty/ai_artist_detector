@@ -15,4 +15,4 @@ jobs:
       - name: Install the project
         run: uv sync --locked
       - name: Run checks
-        run: uv run make -f .docker/dev/Makefile check
+        run: uv run make check
