@@ -40,7 +40,7 @@ def update_packages() -> None:
     )
     pyproject_regex = re.compile('^(?P<padding> *)"(?P<name>[^>]+)>=(?P<version>[^"]+)",$', flags=re.MULTILINE)
 
-    packages_data = {}
+    packages_data: dict[str, str] = {}
 
     for match in packages_regex.finditer(lock_contents):
         package_name = match.group('name')

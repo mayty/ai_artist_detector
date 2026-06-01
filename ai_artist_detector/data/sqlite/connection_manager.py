@@ -2,6 +2,8 @@ from sqlite3 import connect, Connection
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from types import TracebackType
+
     from ai_artist_detector.config import SqliteConfig
 
 
@@ -16,7 +18,9 @@ class SQLiteConnectionManager:
         self._decorator_depth += 1
         return self._connection
 
-    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
+    def __exit__(
+        self, exc_type: type[BaseException] | None, exc_val: BaseException | None, exc_tb: TracebackType | None
+    ) -> None:
         if self._connection is None:
             msg = 'Connection already destroyed'
             raise RuntimeError(msg)

@@ -35,8 +35,10 @@ class Core:
         return get_config()
 
     @cached_property
-    def redis(self) -> Redis:
-        return Redis(host=self.config.redis.host, port=self.config.redis.port, db=self.config.redis.db)
+    def redis(self) -> Redis[str]:
+        return Redis(
+            host=self.config.redis.host, port=self.config.redis.port, db=self.config.redis.db, decode_responses=True
+        )
 
     @cached_property
     def sqlite_connection_manager(self) -> SQLiteConnectionManager:

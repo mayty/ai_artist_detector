@@ -123,3 +123,4 @@ force-sort-within-sections = false
 order-by-type = false
 
 [tool.pyrefly]
+preset = "strict"
