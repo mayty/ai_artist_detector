@@ -26,7 +26,7 @@ class YouTubeMusicClient:
     def _get_alias_from_element(
         self, element: dict[str, Any], artist_name: str, *, validate_name: bool = True
     ) -> Generator[str]:
-        artists = element['artists']
+        artists = element.get('artists') or []
         if len(artists) == 1:  # If an element has only one artist, assume it's the target artist
             alias = artists[0]['id']
             if alias is None:
@@ -85,7 +85,7 @@ class YouTubeMusicClient:
         songs: dict[str, set[tuple[str, str]]] = {}
         for track in response.get('tracks', []):
             track_title = track.get('title')
-            artists = {(unescape_name(artist['name']), artist['id']) for artist in track['artists']}
+            artists = {(unescape_name(artist['name']), artist['id']) for artist in (track.get('artists') or [])}
             if not track_title:
                 continue
             songs[unescape_name(track_title)] = artists
@@ -219,8 +219,8 @@ class YouTubeMusicClient:
             playlist_id = playlist.get('playlistId')
             all_songs = self._get_ytm_response(playlist_id, type_='playlist')
             for song, artists_data in all_songs.items():
-                for artist_name, _ in artists_data:
-                    if not names_match(artist_name, artist_name):
+                for track_artist_name, _ in artists_data:
+                    if not names_match(artist_name, track_artist_name):
                         continue
                     break
                 else:

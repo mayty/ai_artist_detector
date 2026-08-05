@@ -51,7 +51,7 @@ class IimuzykaYouTubeMusicArtistMatchesRepository:
     def set_match_status(self, iimuzyka_id: int, youtube_id: str, is_match: bool) -> None:
         with self.connection_manager as connection:
             connection.execute(
-                f'INSERT INTO {self.tablename} (iimuzyka_id, youtube_id, is_match) VALUES (:iimuzyka_id, :youtube_id, :is_match)',
+                f'INSERT OR REPLACE INTO {self.tablename} (iimuzyka_id, youtube_id, is_match) VALUES (:iimuzyka_id, :youtube_id, :is_match)',
                 {'iimuzyka_id': iimuzyka_id, 'youtube_id': youtube_id, 'is_match': int(is_match)},
             )
             connection.commit()
