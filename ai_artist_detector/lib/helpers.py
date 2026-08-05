@@ -128,7 +128,7 @@ def rate_limit[**ParamSpec, Ret](
 
 
 def singular_cache[**ParamSpec, Ret](func: Callable[ParamSpec, Ret]) -> Callable[ParamSpec, Ret]:
-    first_call_args: tuple[tuple, dict] | None = None
+    first_call_args: tuple[tuple[Any, ...], dict[str, Any]] | None = None
     result: Ret | None = None
 
     @wraps(func)

@@ -7,33 +7,36 @@ find = {}
 
 [project]
 name = "ai_artist_detector"
-version = "0.2.0"
+version = "0.2.1"
 description = "Add your description here"
 readme = "README.md"
 requires-python = "==3.14.*"
 dependencies = [
     "anyascii>=0.3.3",
-    "beautifulsoup4>=4.14.3",
-    "click>=8.3.2",
+    "beautifulsoup4>=4.15.0",
+    "click>=8.4.2",
     "cloudscraper>=1.2.71",
-    "fastapi>=0.136.0",
+    "fastapi>=0.141.0",
     "loguru>=0.7.3",
-    "pydantic>=2.13.2",
-    "pydantic-settings>=2.13.1",
+    "pydantic>=2.13.4",
+    "pydantic-settings>=2.14.2",
     "pyyaml>=6.0.3",
-    "redis>=7.4.0",
-    "requests>=2.33.1",
-    "uvicorn>=0.44.0",
-    "ytmusicapi>=1.11.5",
+    "redis>=8.0.1",
+    "requests>=2.34.2",
+    "uvicorn>=0.52.0",
+    "ytmusicapi>=1.12.1",
 ]
 
 [dependency-groups]
 dev = [
-    "pyrefly>=0.61.1",
-    "ruff>=0.15.11",
-    "types-pyyaml>=6.0.12.20260408",
-    "types-redis>=4.6.0.20241004",
+    "pyrefly>=1.1.1",
+    "ruff>=0.16.0",
+    "types-pyyaml>=6.0.12.20260724",
+    "types-redis>=4.6.0.20241004"
 ]
+
+[tool.uv]
+exclude-newer = "7 days"
 
 [project.scripts]
 aiad = "ai_artist_detector.cli_entry:cli_root"
@@ -71,6 +74,8 @@ ignore = [
     "ISC002",
 
     "ANN",  # Type annotations handled by mypy
+
+    "CPY001",
 
     "D100",  # `Missing docstring in public module`
     "D101",  # `Missing docstring in public class`
@@ -123,3 +128,4 @@ force-sort-within-sections = false
 order-by-type = false
 
 [tool.pyrefly]
+preset = "strict"

@@ -16,22 +16,22 @@ class VerdictKeys(StrEnum):
 class VerdictsRepository:
     namespace = RedisNamespaces.VERDICTS
 
-    def __init__(self, redis: Redis) -> None:
+    def __init__(self, redis: Redis[str]) -> None:
         self.redis = redis
 
     async def _set(self, key: VerdictKeys, ids: set[str]) -> None:
         async with self.redis.pipeline(transaction=True) as pipe:
             pipeline = pipe.delete(f'{self.namespace}:{key}')
             if ids:
-                pipeline = pipeline.sadd(f'{self.namespace}:{key}', *(id_.encode('utf-8') for id_ in ids))
+                pipeline = pipeline.sadd(f'{self.namespace}:{key}', *ids)
             await pipeline.set(f'{self.namespace}:{key}_updated_at', datetime.now(tz=UTC).isoformat()).execute()
 
     async def _get(self, key: VerdictKeys) -> set[str]:
-        return {id_.decode('utf-8') for id_ in await self.redis.smembers(f'{self.namespace}:{key}')}
+        return set(await self.redis.smembers(f'{self.namespace}:{key}'))
 
     async def _get_updated_at(self, key: VerdictKeys) -> datetime | None:
         updated_at = await self.redis.get(f'{self.namespace}:{key}_updated_at')
-        return datetime.fromisoformat(updated_at.decode('utf-8')) if updated_at else None
+        return datetime.fromisoformat(updated_at) if updated_at else None
 
     async def set_humans(self, human_ids: set[str]) -> None:
         await self._set(VerdictKeys.HUMANS, human_ids)

@@ -55,7 +55,7 @@ class IimuzykaTopClient:
             logger.debug('UsingCachedPage', page_id=page_id)
             return cached_response
 
-        params = {} if not page_id else {'page': page_id}
+        params: dict[str, int] = {} if not page_id else {'page': page_id}
         logger.info('FetchingPage', page_id=page_id)
         response = self._scraper.get(self.base_url, params=params)
         try:
