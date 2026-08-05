@@ -172,6 +172,9 @@ class YouTubeAdapterService:
             logger.error('SearchRateLimitExceeded', search_query=search_query)
             self.failed_rate_limit_count += 1
             return cached_artist_ids or set()
+        except RuntimeError:
+            logger.exception('FailedToFetchSearchQuery', search_query=search_query)
+            return cached_artist_ids or set()
         self.youtube_search_results_repository.set_artist_ids(search_query, artist_ids, current_version)
         self.search_cache_updated_count += 1
         return artist_ids

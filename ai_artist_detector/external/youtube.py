@@ -2,7 +2,7 @@ from typing import TYPE_CHECKING
 
 import requests
 from loguru import logger
-from starlette.status import HTTP_200_OK, HTTP_403_FORBIDDEN
+from starlette.status import HTTP_200_OK, HTTP_403_FORBIDDEN, HTTP_429_TOO_MANY_REQUESTS
 
 from ai_artist_detector.exceptions import RateLimitExceededError
 from ai_artist_detector.lib.web_helpers import names_match
@@ -25,7 +25,7 @@ class YouTubeClient:
             raise RateLimitExceededError(msg)
 
     def _raise_if_rate_limit_exceeded(self, response: requests.Response) -> None:
-        if response.status_code == HTTP_403_FORBIDDEN:
+        if response.status_code in (HTTP_403_FORBIDDEN, HTTP_429_TOO_MANY_REQUESTS):
             self._rate_limit_reached = True
             raise RateLimitExceededError(response.text)
 
