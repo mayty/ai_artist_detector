@@ -33,10 +33,15 @@ typecheck:
 .PHONY: check
 check: stylecheck lintcheck typecheck
 
+.PHONY: available-upgrades
+available-upgrades:
+	uv lock --upgrade --dry-run
+
 .PHONY: update_deps
-update_deps:
-	uv lock -U
-	uv run python scripts/bump_pyproject.py
+upgrade-deps:
+	uv lock --upgrade
+	uv tree --no-dev --depth 1 | uv run python scripts/sync_dependencies.py prod
+	uv tree --only-dev --depth 1 | uv run python scripts/sync_dependencies.py dev
 
 .PHONY: run_interactive
 run_interactive:

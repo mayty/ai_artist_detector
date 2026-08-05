@@ -13,27 +13,30 @@ readme = "README.md"
 requires-python = "==3.14.*"
 dependencies = [
     "anyascii>=0.3.3",
-    "beautifulsoup4>=4.14.3",
-    "click>=8.4.1",
+    "beautifulsoup4>=4.15.0",
+    "click>=8.4.2",
     "cloudscraper>=1.2.71",
-    "fastapi>=0.136.3",
+    "fastapi>=0.141.0",
     "loguru>=0.7.3",
     "pydantic>=2.13.4",
-    "pydantic-settings>=2.14.1",
+    "pydantic-settings>=2.14.2",
     "pyyaml>=6.0.3",
-    "redis>=8.0.0",
+    "redis>=8.0.1",
     "requests>=2.34.2",
-    "uvicorn>=0.48.0",
-    "ytmusicapi>=1.12.0",
+    "uvicorn>=0.52.0",
+    "ytmusicapi>=1.12.1",
 ]
 
 [dependency-groups]
 dev = [
-    "pyrefly>=1.0.0",
-    "ruff>=0.15.15",
-    "types-pyyaml>=6.0.12.20260518",
+    "pyrefly>=1.1.1",
+    "ruff>=0.16.0",
+    "types-pyyaml>=6.0.12.20260724",
     "types-redis>=4.6.0.20241004"
 ]
+
+[tool.uv]
+exclude-newer = "7 days"
 
 [project.scripts]
 aiad = "ai_artist_detector.cli_entry:cli_root"
@@ -71,6 +74,8 @@ ignore = [
     "ISC002",
 
     "ANN",  # Type annotations handled by mypy
+
+    "CPY001",
 
     "D100",  # `Missing docstring in public module`
     "D101",  # `Missing docstring in public class`
