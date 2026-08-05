@@ -1,6 +1,7 @@
 from copy import copy
 from typing import TYPE_CHECKING
 
+import requests
 from loguru import logger
 
 from ai_artist_detector.exceptions import MatchingNotImplementedError, RowNotFoundError
@@ -72,7 +73,11 @@ class IimuzykaTopService:
             youtube_paths = self.iimuzyka_ids_mapping_repository.get_or_raise_youtube_paths(artist_id)
             logger.debug('UsingCachedYoutubePaths', youtube_paths=youtube_paths)
         except RowNotFoundError:
-            youtube_handles_response = self.iimyzyka_top_client.get_artist_youtube(artist_id)
+            try:
+                youtube_handles_response = self.iimyzyka_top_client.get_artist_youtube(artist_id)
+            except (requests.exceptions.RequestException, ConnectionResetError) as exc:
+                logger.error('FailedToFetchArtistYoutubePaths', artist_id=artist_id, error=str(exc))
+                return set()
             youtube_paths = youtube_handles_response.paths
             self.iimuzyka_ids_mapping_repository.set_youtube_paths(
                 artist_id, youtube_handles_response.name, youtube_handles_response.paths
