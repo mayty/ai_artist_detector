@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Parse `uv tree` output and update pyproject.toml dependency versions."""
 
 import re
