@@ -1,10 +1,12 @@
 from functools import cached_property
 
 from cloudscraper import CloudScraper
+from prometheus_client import CollectorRegistry
 from redis.asyncio import Redis
 from ytmusicapi import YTMusic
 
 from ai_artist_detector.config import AppConfig, get_config
+from ai_artist_detector.data.redis.metrics import MetricsRepository
 from ai_artist_detector.data.redis.verdicts import VerdictsRepository
 from ai_artist_detector.data.sqlite.connection_manager import SQLiteConnectionManager
 from ai_artist_detector.data.sqlite.iimuzyka_ids_mapping import IimuzykaIdsMappingRepository
@@ -18,6 +20,7 @@ from ai_artist_detector.data.sqlite.youtube_search_results import YoutubeSearchR
 from ai_artist_detector.domain.data_source.explicit import ExplicitService
 from ai_artist_detector.domain.data_source.iimuzyka_top import IimuzykaTopService
 from ai_artist_detector.domain.data_source.soul_over_ai import SoulOverAiService
+from ai_artist_detector.domain.metrics_service import MetricsService
 from ai_artist_detector.domain.verdict_controller import VerdictControllerService
 from ai_artist_detector.domain.youtube import YouTubeAdapterService
 from ai_artist_detector.external.iimuzyka_top import IimuzykaTopClient
@@ -52,6 +55,10 @@ class Core:
     def scraper(self) -> CloudScraper:
         return CloudScraper()
 
+    @cached_property
+    def metrics_registry(self) -> CollectorRegistry:
+        return CollectorRegistry()
+
 
 core = Core()
 
@@ -60,6 +67,10 @@ class Repositories:
     @cached_property
     def redis_verdicts_repository(self) -> VerdictsRepository:
         return VerdictsRepository(core.redis)
+
+    @cached_property
+    def metrics_repository(self) -> MetricsRepository:
+        return MetricsRepository(core.redis)
 
     @cached_property
     def youtube_handles_repository(self) -> YouTubeHandlesRepository:
@@ -112,6 +123,10 @@ external = External()
 
 class Services:
     @cached_property
+    def metrics_service(self) -> MetricsService:
+        return MetricsService(registry=core.metrics_registry)
+
+    @cached_property
     def youtube_adapter_service(self) -> YouTubeAdapterService:
         return YouTubeAdapterService(
             config=core.config.external.youtube,
@@ -153,6 +168,7 @@ class Services:
             iimuzyka_top_service=self.iimyzyka_top_service,
             explicit_service=self.explicit_service,
             verdicts_repository=repositories.redis_verdicts_repository,
+            metrics_repository=repositories.metrics_repository,
         )
 
 
