@@ -2,19 +2,19 @@
 from copy import copy
 from functools import wraps
 from re import sub
-from typing import Any, ParamSpec, TYPE_CHECKING, TypeVar
+from typing import cast, overload, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-P = ParamSpec('P')
-T = TypeVar('T')
+# Types whose instances are safe to return by value (no defensive copy needed).
+_IMMUTABLE_TYPES = (type(None), bool, int, float, str, tuple, frozenset)
 
 
-class CacheHit(Exception):  # noqa: N818 - control-flow signal, not an error
+class CacheHit[T = object](Exception):  # noqa: N818 - control-flow signal, not an error
     """Raised by a pipeline stage when its result is served from cache."""
 
-    def __init__(self, value: Any) -> None:
+    def __init__(self, value: T) -> None:
         super().__init__()
         self.value = value
 
@@ -32,7 +32,7 @@ class StageFailed(Exception):  # noqa: N818 - control-flow signal, not an error
 _CLASS_PREFIX_OVERRIDES = {'YouTubeAdapterService': 'youtube_adapter'}
 
 
-def _derive_prefix(func: Callable[..., Any]) -> str:
+def _derive_prefix(func: Callable[..., object]) -> str:
     """
     Extract a snake_case stage namespace from the decorated function's owner class.
 
@@ -58,7 +58,15 @@ class TrackingService:
     def __init__(self) -> None:
         self._metrics: dict[str, dict[str, int]] = {}
 
-    def stage_metrics(self, name: str, default: T | None = None) -> Callable[[Callable[P, T]], Callable[P, T]]:
+    @overload
+    def stage_metrics[**P, T](
+        self, name: str, default: None
+    ) -> Callable[[Callable[P, T | None]], Callable[P, T | None]]: ...
+
+    @overload
+    def stage_metrics[**P, T](self, name: str, default: T) -> Callable[[Callable[P, T]], Callable[P, T]]: ...
+
+    def stage_metrics[**P, T](self, name: str, default: T) -> Callable[[Callable[P, T]], Callable[P, T]]:
         """
         Track a pipeline stage under `cache_hits` / `successful` / `failed_<reason>`.
 
@@ -69,21 +77,25 @@ class TrackingService:
 
         def decorator(func: Callable[P, T]) -> Callable[P, T]:
             full_name = f'{_derive_prefix(func)}.{name}'
+            if full_name in self._metrics:
+                msg = f'Stage {full_name} already exists'
+                raise ValueError(msg)
+            self._metrics[full_name] = {}
+            stage = self._metrics[full_name]
 
             @wraps(func)
             def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
-                stage = tracking._metrics.setdefault(full_name, {})
                 try:
                     result = func(*args, **kwargs)
                 except CacheHit as exc:
                     stage['cache_hits'] = stage.get('cache_hits', 0) + 1
-                    return exc.value
+                    return cast('CacheHit[T]', exc).value
                 except StageFailed as exc:
                     key = f'failed_{exc.reason}'
                     stage[key] = stage.get(key, 0) + 1
-                    if isinstance(default, (set, list, dict)):
-                        return copy(default)  # type: ignore[return-value]
-                    return default  # type: ignore[return-value]
+                    if not isinstance(default, _IMMUTABLE_TYPES):
+                        return copy(default)
+                    return default
                 else:
                     stage['successful'] = stage.get('successful', 0) + 1
                     return result

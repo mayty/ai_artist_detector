@@ -13,7 +13,7 @@ class SoulOverAiService:
         self,
         youtube_adapter_service: YouTubeAdapterService,
         soul_over_ai_client: SoulOverAiClient,
-    ):
+    ) -> None:
         self.youtube_adapter_service = youtube_adapter_service
         self.soul_over_ai_client = soul_over_ai_client
 

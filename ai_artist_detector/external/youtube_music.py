@@ -24,7 +24,11 @@ class YouTubeMusicClient:
         self.client = client
 
     def _get_alias_from_element(
-        self, element: dict[str, Any], artist_name: str, *, validate_name: bool = True
+        self,
+        element: dict[str, Any],  # pyrefly: ignore [explicit-any]
+        artist_name: str,
+        *,
+        validate_name: bool = True,
     ) -> Generator[str]:
         artists = element.get('artists') or []
         if len(artists) == 1:  # If an element has only one artist, assume it's the target artist
@@ -59,7 +63,10 @@ class YouTubeMusicClient:
         finally:
             self.client._send_request = old_send_request  # noqa: SLF001
 
-    def _get_ytm_profile(self, youtube_id: str) -> dict[str, Any]:
+    def _get_ytm_profile(
+        self,
+        youtube_id: str,
+    ) -> dict[str, Any]:  # pyrefly: ignore [explicit-any]
         try:
             return self.client.get_artist(youtube_id)
         except KeyError:
@@ -92,15 +99,21 @@ class YouTubeMusicClient:
         return songs
 
     @overload
-    def _get_ytm_response(self, youtube_id: str, type_: Literal['profile']) -> dict[str, Any]: ...
+    def _get_ytm_response(
+        self,
+        youtube_id: str,
+        type_: Literal['profile'],
+    ) -> dict[str, Any]: ...  # pyrefly: ignore [explicit-any]
 
     @overload
     def _get_ytm_response(self, youtube_id: str, type_: Literal['playlist']) -> dict[str, set[tuple[str, str]]]: ...
 
     @rate_limit(rps=0.2)
     def _get_ytm_response(
-        self, youtube_id: str, type_: Literal['profile', 'playlist']
-    ) -> dict[str, Any] | dict[str, set[tuple[str, str]]]:
+        self,
+        youtube_id: str,
+        type_: Literal['profile', 'playlist'],
+    ) -> dict[str, Any] | dict[str, set[tuple[str, str]]]:  # pyrefly: ignore [explicit-any]
         logger.info('FetchingYoutubeMusicData', youtube_id=youtube_id, type_=type_)
         match type_:
             case 'profile':
@@ -178,7 +191,11 @@ class YouTubeMusicClient:
         logger.info('NoTracksOverlap')
         return False
 
-    def _get_overlap_by_songs(self, response: dict[str, Any], tracks: set[str]) -> bool:
+    def _get_overlap_by_songs(
+        self,
+        response: dict[str, Any],  # pyrefly: ignore [explicit-any]
+        tracks: set[str],
+    ) -> bool:
         songs_data = response.get('songs', {})
         if not songs_data:
             raise NoSongsFoundError
@@ -194,7 +211,11 @@ class YouTubeMusicClient:
 
         return self._has_song_overlaps(tracks, artist_songs)
 
-    def _get_overlap_by_singles(self, response: dict[str, Any], tracks: set[str]) -> bool:
+    def _get_overlap_by_singles(
+        self,
+        response: dict[str, Any],  # pyrefly: ignore [explicit-any]
+        tracks: set[str],
+    ) -> bool:
         singles_data = response.get('singles', {})
         if not singles_data or 'results' not in singles_data or not singles_data['results']:
             raise SinglesNotFoundError
@@ -207,7 +228,11 @@ class YouTubeMusicClient:
                     return True
         return False
 
-    def _get_overlap_by_playlist(self, response: dict[str, Any], tracks: set[str]) -> bool:
+    def _get_overlap_by_playlist(
+        self,
+        response: dict[str, Any],  # pyrefly: ignore [explicit-any]
+        tracks: set[str],
+    ) -> bool:
         playlists_data = response.get('playlists', {})
         if not playlists_data or 'results' not in playlists_data or not playlists_data['results']:
             raise PlaylistsNotFoundError

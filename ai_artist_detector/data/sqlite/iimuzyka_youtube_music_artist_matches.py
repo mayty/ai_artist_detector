@@ -10,7 +10,7 @@ if TYPE_CHECKING:
 class IimuzykaYouTubeMusicArtistMatchesRepository:
     tablename = 'iimuzyka_youtube_music_artist_matches'
 
-    def __init__(self, connection_manager: SQLiteConnectionManager):
+    def __init__(self, connection_manager: SQLiteConnectionManager) -> None:
         self.connection_manager = connection_manager
 
         with self.connection_manager as connection:

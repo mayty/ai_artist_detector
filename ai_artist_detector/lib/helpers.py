@@ -22,7 +22,7 @@ _thread.start()
 
 
 def async_to_sync[**ParamSpec, Ret](
-    func: Callable[ParamSpec, Coroutine[Any, Any, Ret]],
+    func: Callable[ParamSpec, Coroutine[Any, Any, Ret]],  # pyrefly: ignore [explicit-any]
 ) -> Callable[ParamSpec, Ret]:
     @wraps(func)
     def wrapper(*args: ParamSpec.args, **kwargs: ParamSpec.kwargs) -> Ret:
@@ -128,7 +128,7 @@ def rate_limit[**ParamSpec, Ret](
 
 
 def singular_cache[**ParamSpec, Ret](func: Callable[ParamSpec, Ret]) -> Callable[ParamSpec, Ret]:
-    first_call_args: tuple[tuple[Any, ...], dict[str, Any]] | None = None
+    first_call_args: tuple[tuple[Any, ...], dict[str, Any]] | None = None  # pyrefly: ignore [explicit-any]
     result: Ret | None = None
 
     @wraps(func)
