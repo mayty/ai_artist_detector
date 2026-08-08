@@ -2,10 +2,6 @@
 db_shell:
 	uv run aiad db shell
 
-.PHONY: redis_shell
-redis_shell:
-	uv run aiad redis shell
-
 .PHONY: install
 install:
 	uv sync

@@ -35,8 +35,6 @@ ENV SERVER_PORT=8080
 RUN apk update && apk upgrade && apk add --no-cache curl sqlite
 ENV PATH="/root/.local/bin:${PATH}"
 
-COPY --from=redis:8.6.2-alpine3.23 /usr/local/bin/redis-cli /usr/local/bin/redis-cli
-
 WORKDIR /app
 
 COPY --from=base /usr/local/lib/python3.14/site-packages/ /usr/local/lib/python3.14/site-packages/

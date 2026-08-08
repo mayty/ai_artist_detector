@@ -33,11 +33,6 @@ class QueryUpdatePolicies(StrEnum):
     UPDATE_ALL = auto()
 
 
-class RedisNamespaces(StrEnum):
-    VERDICTS = auto()
-    METRICS = auto()
-
-
 class EndpointLabels(StrEnum):
     CHECK = auto()
     BATCH = auto()
@@ -48,7 +43,6 @@ class MetricName(StrEnum):
     HTTP_REQUEST_DURATION_SECONDS = auto()
     ARTIST_IDS_REQUESTED_TOTAL = auto()
     ARTIST_IDS_CHECKED_AI_TOTAL = auto()
-    REDIS_UP = auto()
     AI_ARTISTS_IN_DB = auto()
     INGESTION_RUN_DURATION_SECONDS = auto()
     INGESTION_LAST_RUN_TIMESTAMP_SECONDS = auto()

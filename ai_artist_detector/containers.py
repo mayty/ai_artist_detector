@@ -2,18 +2,17 @@ from functools import cached_property
 
 from cloudscraper import CloudScraper
 from prometheus_client import CollectorRegistry
-from redis.asyncio import Redis
 from ytmusicapi import YTMusic
 
 from ai_artist_detector.config import AppConfig, get_config
-from ai_artist_detector.data.redis.metrics import MetricsRepository
-from ai_artist_detector.data.redis.verdicts import VerdictsRepository
 from ai_artist_detector.data.sqlite.connection_manager import SQLiteConnectionManager
 from ai_artist_detector.data.sqlite.iimuzyka_ids_mapping import IimuzykaIdsMappingRepository
 from ai_artist_detector.data.sqlite.iimuzyka_overrides import IimuzykaOverridesRepository
 from ai_artist_detector.data.sqlite.iimuzyka_youtube_music_artist_matches import (
     IimuzykaYouTubeMusicArtistMatchesRepository,
 )
+from ai_artist_detector.data.sqlite.ingestion_metrics import MetricsRepository
+from ai_artist_detector.data.sqlite.verdicts import VerdictsRepository
 from ai_artist_detector.data.sqlite.youtube_handles_mapping import YouTubeHandlesRepository
 from ai_artist_detector.data.sqlite.youtube_music_aliases import YouTubeMusicAliasesRepository
 from ai_artist_detector.data.sqlite.youtube_search_results import YoutubeSearchResultsRepository
@@ -38,12 +37,6 @@ class Core:
         return get_config()
 
     @cached_property
-    def redis(self) -> Redis[str]:
-        return Redis(
-            host=self.config.redis.host, port=self.config.redis.port, db=self.config.redis.db, decode_responses=True
-        )
-
-    @cached_property
     def sqlite_connection_manager(self) -> SQLiteConnectionManager:
         return SQLiteConnectionManager(self.config.sqlite)
 
@@ -65,12 +58,12 @@ core = Core()
 
 class Repositories:
     @cached_property
-    def redis_verdicts_repository(self) -> VerdictsRepository:
-        return VerdictsRepository(core.redis)
+    def verdicts_repository(self) -> VerdictsRepository:
+        return VerdictsRepository(connection_manager=core.sqlite_connection_manager)
 
     @cached_property
     def metrics_repository(self) -> MetricsRepository:
-        return MetricsRepository(core.redis)
+        return MetricsRepository(connection_manager=core.sqlite_connection_manager)
 
     @cached_property
     def youtube_handles_repository(self) -> YouTubeHandlesRepository:
@@ -124,7 +117,10 @@ external = External()
 class Services:
     @cached_property
     def metrics_service(self) -> MetricsService:
-        return MetricsService(registry=core.metrics_registry)
+        return MetricsService(
+            registry=core.metrics_registry,
+            metrics_repository=repositories.metrics_repository,
+        )
 
     @cached_property
     def youtube_adapter_service(self) -> YouTubeAdapterService:
@@ -167,8 +163,8 @@ class Services:
             soul_over_ai_service=self.soul_over_ai_service,
             iimuzyka_top_service=self.iimyzyka_top_service,
             explicit_service=self.explicit_service,
-            verdicts_repository=repositories.redis_verdicts_repository,
-            metrics_repository=repositories.metrics_repository,
+            verdicts_repository=repositories.verdicts_repository,
+            metrics_service=self.metrics_service,
         )
 
 

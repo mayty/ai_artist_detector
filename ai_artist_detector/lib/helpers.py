@@ -84,8 +84,10 @@ def ttl_cache[**ParamSpec, Ret](
             now = datetime.now(tz=UTC)
 
             if checked_at is None or (now - checked_at) > ttl:
-                checked_at = now
+                # stamp only on success so a failed fetch is retried on the next
+                # call instead of serving the stale value for the full TTL window
                 cached_value = await func(*args, **kwargs)
+                checked_at = now
 
             return cast('Ret', cached_value)
 

@@ -1,10 +1,17 @@
-# This file has been created with the assistance of an AI tool.
+# This file has been edited with the assistance of an AI tool.
+import asyncio
 from datetime import datetime
+from sqlite3 import Error as SQLiteError
+from typing import TYPE_CHECKING
 
+from loguru import logger
 from prometheus_client import CollectorRegistry, Counter, Gauge, generate_latest, Histogram
 from pydantic import BaseModel, Field
 
 from ai_artist_detector.constants import EndpointLabels, MetricName
+
+if TYPE_CHECKING:
+    from ai_artist_detector.data.sqlite.ingestion_metrics import MetricsRepository
 
 CONTENT_TYPE_LATEST = 'text/plain; version=0.0.4; charset=utf-8'
 
@@ -30,8 +37,18 @@ class MetricsSnapshot(BaseModel):
 
 
 class MetricsService:
-    def __init__(self, registry: CollectorRegistry) -> None:
+    _INGESTION_METRICS = (
+        MetricName.INGESTION_RUN_DURATION_SECONDS,
+        MetricName.INGESTION_LAST_RUN_TIMESTAMP_SECONDS,
+        MetricName.INGESTION_ARTISTS_CACHED,
+        MetricName.INGESTION_ARTISTS_NEW,
+        MetricName.INGESTION_ARTIST_IDS_ADDED,
+        MetricName.INGESTION_UNMATCHED_COUNT,
+    )
+
+    def __init__(self, registry: CollectorRegistry, metrics_repository: MetricsRepository) -> None:
         self.registry = registry
+        self.metrics_repository = metrics_repository
         self._snapshot: MetricsSnapshot | None = None
 
         self._http_requests_total = Counter(
@@ -55,7 +72,6 @@ class MetricsService:
         self._gauges = {
             name: Gauge(name, desc, labels, registry=self.registry)
             for name, desc, labels in (
-                (MetricName.REDIS_UP, 'Whether Redis is reachable (1=yes, 0=no)', NO_LABELS),
                 (MetricName.AI_ARTISTS_IN_DB, 'Number of AI artists in the verdicts database', NO_LABELS),
                 (
                     MetricName.INGESTION_RUN_DURATION_SECONDS,
@@ -100,28 +116,44 @@ class MetricsService:
     def record_artist_ids_checked_ai(self, endpoint: EndpointLabels, count: int) -> None:
         self._artist_ids_checked_ai_total.labels(endpoint).inc(count)
 
+    async def record_run(self, stats: IngestionRunStats) -> None:
+        try:
+            await asyncio.to_thread(self.metrics_repository.record_run, stats)
+        except SQLiteError:
+            logger.exception('FailedToRecordIngestionMetrics')
+
+    async def get_last_run(self) -> IngestionRunStats | None:
+        try:
+            return await asyncio.to_thread(self.metrics_repository.get_last_run)
+        except SQLiteError:
+            logger.exception('FailedToReadLastRun')
+            return None
+
     def update_snapshot(self, snapshot: MetricsSnapshot | None) -> None:
+        """
+        Set every gauge on every call so stale values can never linger.
+
+        Missing data (failed snapshot or no ingestion run) sets NaN — distinct
+        from any valid value, since 0 is a legitimate count.
+        """
         self._snapshot = snapshot
         if snapshot is None:
-            self._gauges[MetricName.REDIS_UP].set(0)
+            for gauge in self._gauges.values():
+                gauge.set(float('nan'))
             return
-
-        self._gauges[MetricName.REDIS_UP].set(1)
 
         if snapshot.verdicts_ai_count is not None:
             self._gauges[MetricName.AI_ARTISTS_IN_DB].set(snapshot.verdicts_ai_count)
+        else:
+            self._gauges[MetricName.AI_ARTISTS_IN_DB].set(float('nan'))
 
         if snapshot.last_run is not None:
             run = snapshot.last_run
-            for metric in (
-                MetricName.INGESTION_RUN_DURATION_SECONDS,
-                MetricName.INGESTION_LAST_RUN_TIMESTAMP_SECONDS,
-                MetricName.INGESTION_ARTISTS_CACHED,
-                MetricName.INGESTION_ARTISTS_NEW,
-                MetricName.INGESTION_ARTIST_IDS_ADDED,
-                MetricName.INGESTION_UNMATCHED_COUNT,
-            ):
+            for metric in self._INGESTION_METRICS:
                 self._gauges[metric].set(getattr(run, metric))
+        else:
+            for metric in self._INGESTION_METRICS:
+                self._gauges[metric].set(float('nan'))
 
     def render_latest(self) -> tuple[bytes, str]:
         output = generate_latest(self.registry)
