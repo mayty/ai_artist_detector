@@ -22,7 +22,7 @@ _thread.start()
 
 
 def async_to_sync[**ParamSpec, Ret](
-    func: Callable[ParamSpec, Coroutine[Any, Any, Ret]],
+    func: Callable[ParamSpec, Coroutine[Any, Any, Ret]],  # pyrefly: ignore [explicit-any]
 ) -> Callable[ParamSpec, Ret]:
     @wraps(func)
     def wrapper(*args: ParamSpec.args, **kwargs: ParamSpec.kwargs) -> Ret:
@@ -84,8 +84,10 @@ def ttl_cache[**ParamSpec, Ret](
             now = datetime.now(tz=UTC)
 
             if checked_at is None or (now - checked_at) > ttl:
-                checked_at = now
+                # stamp only on success so a failed fetch is retried on the next
+                # call instead of serving the stale value for the full TTL window
                 cached_value = await func(*args, **kwargs)
+                checked_at = now
 
             return cast('Ret', cached_value)
 
@@ -128,7 +130,7 @@ def rate_limit[**ParamSpec, Ret](
 
 
 def singular_cache[**ParamSpec, Ret](func: Callable[ParamSpec, Ret]) -> Callable[ParamSpec, Ret]:
-    first_call_args: tuple[tuple[Any, ...], dict[str, Any]] | None = None
+    first_call_args: tuple[tuple[Any, ...], dict[str, Any]] | None = None  # pyrefly: ignore [explicit-any]
     result: Ret | None = None
 
     @wraps(func)

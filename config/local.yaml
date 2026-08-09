@@ -3,5 +3,3 @@ external:
     api_key: null # Specify in `config_override.yaml` for local development
 sqlite:
   file_location: /app/data/data.sqlite
-redis:
-  host: localhost

@@ -8,23 +8,10 @@ services:
       - "8080:8080"
     volumes:
       - "./config/local.yaml:/app/config/local.yaml:ro"
-      - "./config/local.yaml:/app/config/local.overrides.yaml:ro"
+      - "./config/local.prod.overrides.yaml:/app/config/local.overrides.yaml:ro"
       - ./data:/app/data
     environment:
       CONFIG_PATH: "/app/config/local.yaml"
-    depends_on:
-      redis:
-        condition: service_healthy
-
-  redis:
-    image: redis:8.4.0-alpine
-    ports:
-      - "6379:6379"
-    healthcheck:
-      test: [ "CMD-SHELL", "redis-cli ping | grep PONG" ]
-      interval: 1s
-      timeout: 3s
-      retries: 5
 
 volumes:
   uv_cache:

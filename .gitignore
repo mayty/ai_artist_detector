@@ -10,4 +10,4 @@ wheels/
 .idea
 /data/
 local.mk
-config/local.overrides.yaml
+config/*.overrides.yaml

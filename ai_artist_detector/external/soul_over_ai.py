@@ -8,7 +8,7 @@ if TYPE_CHECKING:
 
 
 class SoulOverAiClient:
-    def __init__(self, config: SoulOverAiConfig):
+    def __init__(self, config: SoulOverAiConfig) -> None:
         self.config = config
         self._raw_youtube_cache: dict[str, str] | None = None
         self._raw_ytm_cache: dict[str, list[str]] | None = None

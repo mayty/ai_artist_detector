@@ -17,12 +17,6 @@ class BaseModel(PydanticBaseModel):
     model_config = SettingsConfigDict(extra='forbid')
 
 
-class RedisConfig(BaseModel):
-    host: str = Field(default='localhost', min_length=1, validate_default=True)
-    port: int = Field(default=6379, ge=0, validate_default=True)
-    db: int = Field(default=0, ge=0, validate_default=True)
-
-
 class SqliteConfig(BaseModel):
     file_location: Path
 
@@ -98,7 +92,6 @@ class ExternalsConfig(BaseModel):
 class AppConfig(BaseModel):
     sources: SourcesConfig = Field(default_factory=SourcesConfig)
     external: ExternalsConfig
-    redis: RedisConfig = Field(default_factory=RedisConfig)
     sqlite: SqliteConfig
 
 

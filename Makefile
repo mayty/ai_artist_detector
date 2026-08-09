@@ -2,10 +2,6 @@
 db_shell:
 	uv run aiad db shell
 
-.PHONY: redis_shell
-redis_shell:
-	uv run aiad redis shell
-
 .PHONY: install
 install:
 	uv sync
@@ -37,7 +33,7 @@ check: stylecheck lintcheck typecheck
 available-upgrades:
 	uv lock --upgrade --dry-run
 
-.PHONY: update_deps
+.PHONY: upgrade-deps
 upgrade-deps:
 	uv lock --upgrade
 	uv tree --no-dev --depth 1 | uv run python scripts/sync_dependencies.py prod

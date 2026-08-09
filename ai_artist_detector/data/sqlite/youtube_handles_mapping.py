@@ -9,7 +9,7 @@ if TYPE_CHECKING:
 class YouTubeHandlesRepository:
     tablename = 'youtube_handles'
 
-    def __init__(self, connection_manager: SQLiteConnectionManager):
+    def __init__(self, connection_manager: SQLiteConnectionManager) -> None:
         self.connection_manager = connection_manager
 
         with self.connection_manager as connection:
