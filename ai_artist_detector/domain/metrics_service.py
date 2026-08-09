@@ -106,9 +106,14 @@ class MetricsService:
             )
         }
 
-    def record_http_request(self, method: str, path: str, status: int, duration_seconds: float) -> None:
-        self._http_requests_total.labels(method, path, str(status)).inc()
-        self._http_request_duration_seconds.labels(method, path).observe(duration_seconds)
+    def record_http_request(
+        self, method: str, path: str, status: int, duration_seconds: float, *, is_known_path: bool = False
+    ) -> None:
+        if is_known_path:
+            self._http_requests_total.labels(method, path, str(status)).inc()
+            self._http_request_duration_seconds.labels(method, path).observe(duration_seconds)
+        else:
+            self._http_requests_total.labels(method, 'unknown_path', str(status)).inc()
 
     def record_artist_ids_requested(self, endpoint: EndpointLabels, count: int) -> None:
         self._artist_ids_requested_total.labels(endpoint).inc(count)

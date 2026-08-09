@@ -23,7 +23,13 @@ async def record_timing(
     start = perf_counter()
     response = await call_next(request)
     duration = perf_counter() - start
-    services.metrics_service.record_http_request(request.method, request.url.path, response.status_code, duration)
+    services.metrics_service.record_http_request(
+        request.method,
+        request.url.path,
+        response.status_code,
+        duration,
+        is_known_path=request.scope.get('route') is not None,
+    )
     return response
 
 
