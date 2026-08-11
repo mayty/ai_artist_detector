@@ -153,7 +153,6 @@ class Services:
     def explicit_service(self) -> ExplicitService:
         return ExplicitService(
             artist_ids=core.config.sources.explicit.artist_ids,
-            youtube_adapter_service=self.youtube_adapter_service,
         )
 
     @cached_property
@@ -163,6 +162,7 @@ class Services:
             soul_over_ai_service=self.soul_over_ai_service,
             iimuzyka_top_service=self.iimyzyka_top_service,
             explicit_service=self.explicit_service,
+            youtube_adapter_service=self.youtube_adapter_service,
             verdicts_repository=repositories.verdicts_repository,
             metrics_service=self.metrics_service,
         )

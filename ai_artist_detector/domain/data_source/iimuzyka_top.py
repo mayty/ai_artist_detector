@@ -1,6 +1,5 @@
 # This file has been edited with the assistance of an AI tool.
 from contextlib import suppress
-from copy import copy
 from itertools import chain
 from typing import TYPE_CHECKING
 
@@ -37,7 +36,7 @@ class IimuzykaTopService:
         self.unresolved_handles_count = 0
         self.not_matched_count = 0
 
-    def get_ai_artists(self, ignore_aliases_cache: bool) -> set[str]:
+    def get_ai_artists(self) -> set[str]:
         logger.info('RetrievingInitialPage')
         page = self.iimyzyka_top_client.get_page()
         logger.info('RetrievedPage', artists_count=len(page.artists))
@@ -57,9 +56,7 @@ class IimuzykaTopService:
 
         for i, (artist_id, artist_tracks) in enumerate(artists.items(), 1):
             with logger.contextualize(artist_id=artist_id, progress=f'{i}/{len(artists)}'):
-                artist_ytm_ids = self._get_artist_youtube_music_ids(
-                    artist_id, artist_tracks, ignore_aliases_cache=ignore_aliases_cache
-                )
+                artist_ytm_ids = self._get_artist_youtube_music_ids(artist_id, artist_tracks)
                 if not artist_ytm_ids:
                     self.not_matched_count += 1
                 ytm_ids.update(artist_ytm_ids)
@@ -74,9 +71,7 @@ class IimuzykaTopService:
 
         return ytm_ids
 
-    def _get_artist_youtube_music_ids(
-        self, artist_id: int, artist_tracks: set[str], ignore_aliases_cache: bool
-    ) -> set[str]:
+    def _get_artist_youtube_music_ids(self, artist_id: int, artist_tracks: set[str]) -> set[str]:
         youtube_paths = self._fetch_youtube_paths(artist_id)
         if youtube_paths is None:
             return set()
@@ -94,11 +89,6 @@ class IimuzykaTopService:
         if not ytm_ids:
             logger.warning('NoYoutubeIdForArtist', youtube_paths=youtube_paths)
             return set()
-
-        for artist_ytm_id in copy(ytm_ids):
-            ytm_ids |= self.youtube_adapter_service.get_artist_aliases(
-                artist_ytm_id, ignore_aliases_cache=ignore_aliases_cache
-            )
 
         return ytm_ids
 

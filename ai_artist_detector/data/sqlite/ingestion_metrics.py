@@ -35,6 +35,7 @@ class MetricsRepository:
                 'ingestion_artists_cached INTEGER NOT NULL, '
                 'ingestion_artists_new INTEGER NOT NULL, '
                 'ingestion_artist_ids_added INTEGER NOT NULL, '
+                'ingestion_artist_alias_ids INTEGER NOT NULL, '
                 'ingestion_unmatched_count INTEGER NOT NULL, '
                 'stage_metrics TEXT NOT NULL, '
                 'source_metrics TEXT NOT NULL)'
@@ -48,9 +49,10 @@ class MetricsRepository:
                 'started_at, finished_at, ingestion_run_duration_seconds, '
                 'ingestion_last_run_timestamp_seconds, ingestion_artists_cached, '
                 'ingestion_artists_new, ingestion_artist_ids_added, '
+                'ingestion_artist_alias_ids, '
                 'ingestion_unmatched_count, stage_metrics, source_metrics) '
                 'VALUES (:started_at, :finished_at, :duration_seconds, :last_run_timestamp, '
-                ':artists_cached, :artists_new, :artist_ids_added, :unmatched_count, '
+                ':artists_cached, :artists_new, :artist_ids_added, :artist_alias_ids, :unmatched_count, '
                 ':stage_metrics, :source_metrics)',
                 {
                     'started_at': stats.started_at.isoformat(),
@@ -60,6 +62,7 @@ class MetricsRepository:
                     'artists_cached': stats.ingestion_artists_cached,
                     'artists_new': stats.ingestion_artists_new,
                     'artist_ids_added': stats.ingestion_artist_ids_added,
+                    'artist_alias_ids': stats.ingestion_artist_alias_ids,
                     'unmatched_count': stats.ingestion_unmatched_count,
                     'stage_metrics': json.dumps(stats.stage_metrics),
                     'source_metrics': json.dumps(stats.source_metrics),
@@ -77,6 +80,7 @@ class MetricsRepository:
                 f'SELECT started_at, finished_at, ingestion_run_duration_seconds, '
                 'ingestion_last_run_timestamp_seconds, ingestion_artists_cached, '
                 'ingestion_artists_new, ingestion_artist_ids_added, '
+                'ingestion_artist_alias_ids, '
                 'ingestion_unmatched_count, stage_metrics, source_metrics '
                 f'FROM {self.tablename} ORDER BY id DESC LIMIT 1'
             ).fetchone()
@@ -90,7 +94,8 @@ class MetricsRepository:
             ingestion_artists_cached=row[4],
             ingestion_artists_new=row[5],
             ingestion_artist_ids_added=row[6],
-            ingestion_unmatched_count=row[7],
-            stage_metrics=json.loads(row[8]),
-            source_metrics=json.loads(row[9]),
+            ingestion_artist_alias_ids=row[7],
+            ingestion_unmatched_count=row[8],
+            stage_metrics=json.loads(row[9]),
+            source_metrics=json.loads(row[10]),
         )

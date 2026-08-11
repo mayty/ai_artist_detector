@@ -16,6 +16,7 @@ if TYPE_CHECKING:
     from ai_artist_detector.domain.data_source.iimuzyka_top import IimuzykaTopService
     from ai_artist_detector.domain.data_source.soul_over_ai import SoulOverAiService
     from ai_artist_detector.domain.metrics_service import MetricsService
+    from ai_artist_detector.domain.youtube import YouTubeAdapterService
 
 
 class VerdictControllerService:
@@ -25,11 +26,13 @@ class VerdictControllerService:
         soul_over_ai_service: SoulOverAiService,
         iimuzyka_top_service: IimuzykaTopService,
         explicit_service: ExplicitService,
+        youtube_adapter_service: YouTubeAdapterService,
         verdicts_repository: VerdictsRepository,
         metrics_service: MetricsService,
     ) -> None:
         self.verdicts_repository = verdicts_repository
         self.metrics_service = metrics_service
+        self.youtube_adapter_service = youtube_adapter_service
 
         _sources = {
             DataSources.SOUL_OVER_AI: soul_over_ai_service,
@@ -51,7 +54,7 @@ class VerdictControllerService:
         for source, service in self._sources.items():
             old_artists_count = len(ai_artists)
             logger.info('RetrievingAiArtists', source=source)
-            retrieved_artists = service.get_ai_artists(ignore_aliases_cache=ignore_aliases_cache)
+            retrieved_artists = service.get_ai_artists()
             added_count = len(ai_artists | retrieved_artists) - old_artists_count
             ai_artists |= retrieved_artists
             logger.info('ArtistsRetrieved', count=len(retrieved_artists), added_count=added_count)
@@ -64,6 +67,10 @@ class VerdictControllerService:
                 'unresolved_handles_count': service.unresolved_handles_count,
                 'not_matched_count': service.not_matched_count,
             }
+
+        direct_artists_count = len(ai_artists)
+        ai_artists = self._expand_aliases(ai_artists, ignore_aliases_cache)
+        aliases_count = len(ai_artists) - direct_artists_count
 
         stage_metrics = tracking.dump_metrics()
 
@@ -80,11 +87,20 @@ class VerdictControllerService:
                 ingestion_artists_cached=len(ai_artists),
                 ingestion_artists_new=len(ai_artists - previous_artists),
                 ingestion_artist_ids_added=total_retrieved,
+                ingestion_artist_alias_ids=aliases_count,
                 ingestion_unmatched_count=total_unresolved_handles + total_not_matched,
                 stage_metrics=stage_metrics,
                 source_metrics=source_metrics,
             )
         )
+
+    def _expand_aliases(self, artist_ids: set[str], ignore_aliases_cache: bool) -> set[str]:
+        expanded_artist_ids = set(artist_ids)
+        for artist_id in artist_ids:
+            expanded_artist_ids |= self.youtube_adapter_service.get_artist_aliases(
+                artist_id, ignore_aliases_cache=ignore_aliases_cache
+            )
+        return expanded_artist_ids
 
     @ttl_cache(timedelta(minutes=1))
     async def get_ai_artists(self) -> set[str]:
