@@ -4,6 +4,8 @@ from functools import wraps
 from re import sub
 from typing import cast, overload, TYPE_CHECKING
 
+from loguru import logger
+
 if TYPE_CHECKING:
     from collections.abc import Callable
 
@@ -93,6 +95,12 @@ class TrackingService:
                 except StageFailed as exc:
                     key = f'failed_{exc.reason}'
                     stage[key] = stage.get(key, 0) + 1
+                    if not isinstance(default, _IMMUTABLE_TYPES):
+                        return copy(default)
+                    return default
+                except Exception:  # noqa: BLE001 - intentional safety net: log & contain all unhandled errors
+                    logger.exception('UnhandledErrorInStage', stage=full_name)
+                    stage['failed_unhandled_error'] = stage.get('failed_unhandled_error', 0) + 1
                     if not isinstance(default, _IMMUTABLE_TYPES):
                         return copy(default)
                     return default
