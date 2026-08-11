@@ -171,9 +171,14 @@ class IimuzykaTopService:
 
         try:
             is_match = self.youtube_adapter_service.artist_has_songs_match(artist_id, artist_tracks)
-        except MatchingNotImplementedError:
-            logger.warning('CouldNotCheckForMatch', iimuzyka_artist_id=iimuzyka_artist_id, youtube_id=artist_id)
-            msg = 'not_implemented'
-            raise StageFailed(msg) from None
-        self.iimuzyka_youtube_music_artist_matches_repository.set_match_status(iimuzyka_artist_id, artist_id, is_match)
+            fail_reason: str | None = None
+        except MatchingNotImplementedError as exc:
+            logger.warning(
+                'CouldNotCheckForMatch', iimuzyka_artist_id=iimuzyka_artist_id, youtube_id=artist_id, cause=exc.cause
+            )
+            is_match = False
+            fail_reason = exc.cause
+        self.iimuzyka_youtube_music_artist_matches_repository.set_match_status(
+            iimuzyka_artist_id, artist_id, is_match, fail_reason
+        )
         return is_match

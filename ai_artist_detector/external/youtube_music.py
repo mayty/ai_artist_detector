@@ -276,6 +276,7 @@ class YouTubeMusicClient:
 
         if bool(response.get('videos', {}).get('results', [])):
             # Video overlap check not implemented yet
-            raise MatchingNotImplementedError
+            cause = 'videos'
+            raise MatchingNotImplementedError(cause)
 
         return False
