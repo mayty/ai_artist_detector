@@ -7,7 +7,7 @@ find = {}
 
 [project]
 name = "ai_artist_detector"
-version = "0.3.0"
+version = "0.3.1"
 description = "Add your description here"
 readme = "README.md"
 requires-python = "==3.14.*"
