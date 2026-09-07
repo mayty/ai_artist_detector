@@ -49,4 +49,5 @@ class MetricName(StrEnum):
     INGESTION_ARTISTS_CACHED = auto()
     INGESTION_ARTISTS_NEW = auto()
     INGESTION_ARTIST_IDS_ADDED = auto()
+    INGESTION_ARTIST_ALIAS_IDS = auto()
     INGESTION_UNMATCHED_COUNT = auto()

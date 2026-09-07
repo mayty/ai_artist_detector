@@ -26,6 +26,7 @@ class IngestionRunStats(BaseModel):
     ingestion_artists_cached: int
     ingestion_artists_new: int
     ingestion_artist_ids_added: int
+    ingestion_artist_alias_ids: int
     ingestion_unmatched_count: int
     stage_metrics: dict[str, dict[str, int]] = Field(default_factory=dict)
     source_metrics: dict[str, dict[str, int]] = Field(default_factory=dict)
@@ -43,6 +44,7 @@ class MetricsService:
         MetricName.INGESTION_ARTISTS_CACHED,
         MetricName.INGESTION_ARTISTS_NEW,
         MetricName.INGESTION_ARTIST_IDS_ADDED,
+        MetricName.INGESTION_ARTIST_ALIAS_IDS,
         MetricName.INGESTION_UNMATCHED_COUNT,
     )
 
@@ -96,6 +98,11 @@ class MetricsService:
                 (
                     MetricName.INGESTION_ARTIST_IDS_ADDED,
                     'Total artist IDs retrieved by all sources in the last run',
+                    NO_LABELS,
+                ),
+                (
+                    MetricName.INGESTION_ARTIST_ALIAS_IDS,
+                    'Total number of alias IDs discovered in the last run',
                     NO_LABELS,
                 ),
                 (

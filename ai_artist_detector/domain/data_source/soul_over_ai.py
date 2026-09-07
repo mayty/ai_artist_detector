@@ -21,7 +21,7 @@ class SoulOverAiService:
         self.unresolved_handles_count = 0
         self.not_matched_count = 0
 
-    def get_ai_artists(self, ignore_aliases_cache: bool) -> set[str]:
+    def get_ai_artists(self) -> set[str]:
         ai_artists = self.soul_over_ai_client.retrieve_ai_youtube_channels()
         ai_ids: set[str] = set()
 
@@ -39,11 +39,6 @@ class SoulOverAiService:
                 artist_id = raw_artist_id
 
             ai_ids.add(artist_id)
-
-            artist_aliases = self.youtube_adapter_service.get_artist_aliases(
-                artist_id, ignore_aliases_cache=ignore_aliases_cache
-            )
-            ai_ids.update(artist_aliases)
 
         logger.info(
             'RetrievalStats',

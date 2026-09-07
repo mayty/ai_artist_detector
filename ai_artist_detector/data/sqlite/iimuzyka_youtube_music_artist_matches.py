@@ -1,4 +1,3 @@
-import json
 from typing import TYPE_CHECKING
 
 from ai_artist_detector.exceptions import RowNotFoundError
@@ -26,16 +25,9 @@ class IimuzykaYouTubeMusicArtistMatchesRepository:
                 return
 
             connection.execute(
-                f'CREATE TABLE {self.tablename} (iimuzyka_id INTEGER, youtube_id TEXT, is_match INTEGER, PRIMARY KEY (iimuzyka_id, youtube_id))'
+                f'CREATE TABLE {self.tablename} (iimuzyka_id INTEGER, youtube_id TEXT, is_match INTEGER, fail_reason TEXT, PRIMARY KEY (iimuzyka_id, youtube_id))'
             )
             connection.commit()
-
-    def _get_paths_from_str(self, value: str) -> list[tuple[str, list[tuple[str, str]]]]:
-        decoded = json.loads(value)
-        return [
-            (path, [(param_name, param_value) for param_name, param_value in query_params])
-            for path, query_params in decoded
-        ]
 
     def is_match(self, iimuzyka_id: int, youtube_id: str) -> bool:
         with self.connection_manager as connection:
@@ -48,10 +40,15 @@ class IimuzykaYouTubeMusicArtistMatchesRepository:
             raise RowNotFoundError(msg)
         return row[0] == 1
 
-    def set_match_status(self, iimuzyka_id: int, youtube_id: str, is_match: bool) -> None:
+    def set_match_status(self, iimuzyka_id: int, youtube_id: str, is_match: bool, fail_reason: str | None) -> None:
         with self.connection_manager as connection:
             connection.execute(
-                f'INSERT OR REPLACE INTO {self.tablename} (iimuzyka_id, youtube_id, is_match) VALUES (:iimuzyka_id, :youtube_id, :is_match)',
-                {'iimuzyka_id': iimuzyka_id, 'youtube_id': youtube_id, 'is_match': int(is_match)},
+                f'INSERT OR REPLACE INTO {self.tablename} (iimuzyka_id, youtube_id, is_match, fail_reason) VALUES (:iimuzyka_id, :youtube_id, :is_match, :fail_reason)',
+                {
+                    'iimuzyka_id': iimuzyka_id,
+                    'youtube_id': youtube_id,
+                    'is_match': int(is_match),
+                    'fail_reason': fail_reason,
+                },
             )
             connection.commit()

@@ -138,8 +138,9 @@ def singular_cache[**ParamSpec, Ret](func: Callable[ParamSpec, Ret]) -> Callable
         nonlocal first_call_args, result
 
         if first_call_args is None:
-            first_call_args = (deepcopy(args), deepcopy(kwargs))
+            _original_call_args = (deepcopy(args), deepcopy(kwargs))
             result = func(*args, **kwargs)
+            first_call_args = _original_call_args
             return result
 
         if args != first_call_args[0]:

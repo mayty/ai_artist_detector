@@ -24,7 +24,9 @@ class InvalidYoutubeMusicAccountTypeError(ProjectError):
         self.reason = reason
 
 
-class MatchingNotImplementedError(ProjectError): ...
+class MatchingNotImplementedError(ProjectError):
+    def __init__(self, cause: str) -> None:
+        self.cause = cause
 
 
 class PlaylistsNotFoundError(ProjectError): ...
