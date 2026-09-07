@@ -69,14 +69,25 @@ class VerdictControllerService:
             }
 
         direct_artists_count = len(ai_artists)
+        direct_ai_artists = set(ai_artists)
         ai_artists = self._expand_aliases(ai_artists, ignore_aliases_cache)
         aliases_count = len(ai_artists) - direct_artists_count
+
+        associated_artists = self._collect_associated_artists(direct_ai_artists)
+        associated_artists = self._expand_aliases(associated_artists, ignore_aliases_cache)
+        associated_artists -= ai_artists  # AI wins
 
         stage_metrics = tracking.dump_metrics()
 
         finished_at = datetime.now(tz=UTC)
-        logger.info('VerdictsRecalculated', total_count=len(ai_artists), stage_metrics=stage_metrics)
+        logger.info(
+            'VerdictsRecalculated',
+            total_count=len(ai_artists),
+            associated_count=len(associated_artists),
+            stage_metrics=stage_metrics,
+        )
         self.verdicts_repository.set_ai(ai_artists)
+        self.verdicts_repository.set_associated(associated_artists)
 
         await self.metrics_service.record_run(
             IngestionRunStats(
@@ -102,9 +113,22 @@ class VerdictControllerService:
             )
         return expanded_artist_ids
 
+    def _collect_associated_artists(self, ai_artist_ids: set[str]) -> set[str]:
+        associated_artist_ids: set[str] = set()
+        for artist_id in ai_artist_ids:
+            associated_artist_ids |= self.youtube_adapter_service.get_associated_artist_ids(artist_id)
+        return associated_artist_ids
+
     @ttl_cache(timedelta(minutes=1))
     async def get_ai_artists(self) -> set[str]:
         logger.info('FetchingAiVerdicts')
         ai_artists = await asyncio.to_thread(self.verdicts_repository.get_ai)
         logger.info('AiVerdictsFetched', count=len(ai_artists))
         return ai_artists
+
+    @ttl_cache(timedelta(minutes=1))
+    async def get_associated_artists(self) -> set[str]:
+        logger.info('FetchingAssociatedVerdicts')
+        associated_artists = await asyncio.to_thread(self.verdicts_repository.get_associated)
+        logger.info('AssociatedVerdictsFetched', count=len(associated_artists))
+        return associated_artists

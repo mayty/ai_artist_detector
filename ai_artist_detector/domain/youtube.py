@@ -90,6 +90,10 @@ class YouTubeAdapterService:
             self.youtube_music_aliases_repository.set_aliases(artist_id, artist_name, aliases)
         return aliases
 
+    @tracking.stage_metrics('associated_resolution', default=set())
+    def get_associated_artist_ids(self, artist_id: str) -> set[str]:
+        return self.youtube_music_client.get_ytm_id_associated(artist_id)
+
     @tracking.stage_metrics('search_resolution', default=set())
     def get_artist_id_from_search_query(self, search_query: str) -> set[str]:
         search_query = search_query.lower().strip()

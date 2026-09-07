@@ -27,19 +27,31 @@ class VerdictsRepository:
             connection.execute(f'CREATE TABLE {self.tablename} (key TEXT PRIMARY KEY, artist_ids TEXT NOT NULL)')
             connection.commit()
 
-    def get_ai(self) -> set[str]:
+    def get_ids(self, key: str) -> set[str]:
         with self.connection_manager as connection:
-            row = connection.execute(f'SELECT artist_ids FROM {self.tablename} WHERE key="ai"').fetchone()
+            row = connection.execute(f'SELECT artist_ids FROM {self.tablename} WHERE key=:key', {'key': key}).fetchone()
         if row is None:
             return set()
         return set(json.loads(row[0]))
 
-    def set_ai(self, ai_ids: set[str]) -> None:
+    def set_ids(self, key: str, artist_ids: set[str]) -> None:
         with self.connection_manager as connection:
             connection.execute(
                 f"""
-                    INSERT INTO {self.tablename} (key, artist_ids) VALUES ("ai", :artist_ids)
+                    INSERT INTO {self.tablename} (key, artist_ids) VALUES (:key, :artist_ids)
                     ON CONFLICT DO UPDATE SET artist_ids=excluded.artist_ids""",
-                {'artist_ids': json.dumps(sorted(ai_ids))},
+                {'key': key, 'artist_ids': json.dumps(sorted(artist_ids))},
             )
             connection.commit()
+
+    def get_ai(self) -> set[str]:
+        return self.get_ids('ai')
+
+    def set_ai(self, ai_ids: set[str]) -> None:
+        self.set_ids('ai', ai_ids)
+
+    def get_associated(self) -> set[str]:
+        return self.get_ids('associated')
+
+    def set_associated(self, associated_ids: set[str]) -> None:
+        self.set_ids('associated', associated_ids)
