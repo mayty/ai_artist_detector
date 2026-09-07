@@ -70,10 +70,13 @@ class VerdictControllerService:
 
         direct_artists_count = len(ai_artists)
         direct_ai_artists = set(ai_artists)
+        logger.info('ExpandingAliases', category='ai')
         ai_artists = self._expand_aliases(ai_artists, ignore_aliases_cache)
         aliases_count = len(ai_artists) - direct_artists_count
 
+        logger.info('GettingAssociatedArtists')
         associated_artists = self._collect_associated_artists(direct_ai_artists)
+        logger.info('ExpandingAliases', category='associated')
         associated_artists = self._expand_aliases(associated_artists, ignore_aliases_cache)
         associated_artists -= ai_artists  # AI wins
 
@@ -107,16 +110,18 @@ class VerdictControllerService:
 
     def _expand_aliases(self, artist_ids: set[str], ignore_aliases_cache: bool) -> set[str]:
         expanded_artist_ids = set(artist_ids)
-        for artist_id in artist_ids:
-            expanded_artist_ids |= self.youtube_adapter_service.get_artist_aliases(
-                artist_id, ignore_aliases_cache=ignore_aliases_cache
-            )
+        for i, artist_id in enumerate(artist_ids, 1):
+            with logger.contextualize(artist_id=artist_id, progress=f'{i}/{len(artist_ids)}'):
+                expanded_artist_ids |= self.youtube_adapter_service.get_artist_aliases(
+                    artist_id, ignore_aliases_cache=ignore_aliases_cache
+                )
         return expanded_artist_ids
 
     def _collect_associated_artists(self, ai_artist_ids: set[str]) -> set[str]:
         associated_artist_ids: set[str] = set()
-        for artist_id in ai_artist_ids:
-            associated_artist_ids |= self.youtube_adapter_service.get_associated_artist_ids(artist_id)
+        for i, artist_id in enumerate(ai_artist_ids, 1):
+            with logger.contextualize(artist_id=artist_id, progress=f'{i}/{len(ai_artist_ids)}'):
+                associated_artist_ids |= self.youtube_adapter_service.get_associated_artist_ids(artist_id)
         return associated_artist_ids
 
     @ttl_cache(timedelta(minutes=1))
