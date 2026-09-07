@@ -16,6 +16,9 @@ if TYPE_CHECKING:
     from ai_artist_detector.config import YouTubeConfig
     from ai_artist_detector.data.sqlite.youtube_handles_mapping import YouTubeHandlesRepository
     from ai_artist_detector.data.sqlite.youtube_music_aliases import YouTubeMusicAliasesRepository
+    from ai_artist_detector.data.sqlite.youtube_music_associated_artists import (
+        YouTubeMusicAssociatedArtistsRepository,
+    )
     from ai_artist_detector.data.sqlite.youtube_search_results import YoutubeSearchResultsRepository
     from ai_artist_detector.external.youtube import YouTubeClient
     from ai_artist_detector.external.youtube_music import YouTubeMusicClient
@@ -29,6 +32,7 @@ class YouTubeAdapterService:
         youtube_music_client: YouTubeMusicClient,
         youtube_handles_repository: YouTubeHandlesRepository,
         youtube_music_aliases_repository: YouTubeMusicAliasesRepository,
+        youtube_music_associated_artists_repository: YouTubeMusicAssociatedArtistsRepository,
         youtube_search_results_repository: YoutubeSearchResultsRepository,
     ) -> None:
         self.config = config
@@ -36,6 +40,7 @@ class YouTubeAdapterService:
         self.youtube_music_client = youtube_music_client
         self.youtube_handles_repository = youtube_handles_repository
         self.youtube_music_aliases_repository = youtube_music_aliases_repository
+        self.youtube_music_associated_artists_repository = youtube_music_associated_artists_repository
         self.youtube_search_results_repository = youtube_search_results_repository
 
         self._handles_rate_limited = False
@@ -92,7 +97,15 @@ class YouTubeAdapterService:
 
     @tracking.stage_metrics('associated_resolution', default=set())
     def get_associated_artist_ids(self, artist_id: str) -> set[str]:
-        return self.youtube_music_client.get_ytm_id_associated(artist_id)
+        with suppress(RowNotFoundError):
+            associated = self.youtube_music_associated_artists_repository.get_associated_artist_ids(artist_id)
+            logger.debug('UsingCachedAssociatedArtists', artist_id=artist_id, associated_artists=associated)
+            raise CacheHit(associated)
+
+        associated = self.youtube_music_client.get_ytm_id_associated(artist_id)
+        logger.debug('FetchedAssociatedArtists', artist_id=artist_id, associated_artists=associated)
+        self.youtube_music_associated_artists_repository.set_associated_artist_ids(artist_id, associated)
+        return associated
 
     @tracking.stage_metrics('search_resolution', default=set())
     def get_artist_id_from_search_query(self, search_query: str) -> set[str]:

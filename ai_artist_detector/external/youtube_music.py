@@ -1,3 +1,4 @@
+# This file has been edited with the assistance of an AI tool.
 from contextlib import contextmanager
 from functools import cache
 from typing import Any, Literal, overload, TYPE_CHECKING
@@ -206,6 +207,7 @@ class YouTubeMusicClient:
         associated -= {youtube_id}
         if associated:
             logger.info('FoundAssociatedArtists', youtube_id=youtube_id, associated_artists=associated)
+        return associated
 
     def _has_song_overlaps(self, known_tracks: set[str], tracks_to_test: set[str]) -> bool:
         if not tracks_to_test:

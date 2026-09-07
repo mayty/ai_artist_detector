@@ -1,3 +1,4 @@
+# This file has been edited with the assistance of an AI tool.
 from functools import cached_property
 
 from cloudscraper import CloudScraper
@@ -15,6 +16,7 @@ from ai_artist_detector.data.sqlite.ingestion_metrics import MetricsRepository
 from ai_artist_detector.data.sqlite.verdicts import VerdictsRepository
 from ai_artist_detector.data.sqlite.youtube_handles_mapping import YouTubeHandlesRepository
 from ai_artist_detector.data.sqlite.youtube_music_aliases import YouTubeMusicAliasesRepository
+from ai_artist_detector.data.sqlite.youtube_music_associated_artists import YouTubeMusicAssociatedArtistsRepository
 from ai_artist_detector.data.sqlite.youtube_search_results import YoutubeSearchResultsRepository
 from ai_artist_detector.domain.data_source.explicit import ExplicitService
 from ai_artist_detector.domain.data_source.iimuzyka_top import IimuzykaTopService
@@ -74,6 +76,10 @@ class Repositories:
         return YouTubeMusicAliasesRepository(connection_manager=core.sqlite_connection_manager)
 
     @cached_property
+    def youtube_music_associated_artists_repository(self) -> YouTubeMusicAssociatedArtistsRepository:
+        return YouTubeMusicAssociatedArtistsRepository(connection_manager=core.sqlite_connection_manager)
+
+    @cached_property
     def iimuzyka_ids_mapping_repository(self) -> IimuzykaIdsMappingRepository:
         return IimuzykaIdsMappingRepository(connection_manager=core.sqlite_connection_manager)
 
@@ -130,6 +136,7 @@ class Services:
             youtube_music_client=external.youtube_music,
             youtube_handles_repository=repositories.youtube_handles_repository,
             youtube_music_aliases_repository=repositories.youtube_music_aliases_repository,
+            youtube_music_associated_artists_repository=repositories.youtube_music_associated_artists_repository,
             youtube_search_results_repository=repositories.youtube_search_results_repository,
         )
 
