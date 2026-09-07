@@ -129,12 +129,11 @@ class IimuzykaTopService:
                 artist_ytm_ids = self.youtube_adapter_service.get_artist_id_from_search_query(search_query)
 
                 logger.debug('FilteringArtists', artist_ids=artist_ytm_ids, search_query=search_query)
-                return set(
-                    filter(
-                        lambda artist_id: self._artist_has_tracks_overlap(iimuzyka_id, artist_id, artist_tracks),
-                        artist_ytm_ids,
-                    )
-                )
+                return {
+                    artist_id
+                    for artist_id in artist_ytm_ids
+                    if self._artist_has_tracks_overlap(iimuzyka_id, artist_id, artist_tracks)
+                }
 
             logger.warning('NoSearchQueryInYoutubePath', youtube_path=path, query_params=query_params)
             return set()
