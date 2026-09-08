@@ -1,4 +1,6 @@
+# This file has been edited with the assistance of an AI tool.
 from contextlib import contextmanager
+from functools import cache
 from typing import Any, Literal, overload, TYPE_CHECKING
 
 from loguru import logger
@@ -89,14 +91,33 @@ class YouTubeMusicClient:
                 return {}
             raise
 
+        return self._build_songs(response.get('tracks', []))
+
+    def _build_songs(
+        self,
+        tracks: list[dict[str, Any]],  # pyrefly: ignore [explicit-any]
+    ) -> dict[str, set[tuple[str, str]]]:
         songs: dict[str, set[tuple[str, str]]] = {}
-        for track in response.get('tracks', []):
+        for track in tracks:
             track_title = track.get('title')
-            artists = {(unescape_name(artist['name']), artist['id']) for artist in (track.get('artists') or [])}
             if not track_title:
                 continue
+            artists = {(unescape_name(artist['name']), artist['id']) for artist in (track.get('artists') or [])}
             songs[unescape_name(track_title)] = artists
         return songs
+
+    def _get_artist_songs(
+        self,
+        response: dict[str, Any],  # pyrefly: ignore [explicit-any]
+    ) -> dict[str, set[tuple[str, str]]]:
+        songs_data = response.get('songs', {})
+        if not songs_data:
+            return {}
+        if songs_browse_id := songs_data.get('browseId'):
+            return self._get_ytm_response(songs_browse_id, type_='playlist')
+        # Can happen if an artist has very few songs
+        logger.debug('NoSongsBrowseIdFound')
+        return self._build_songs(songs_data.get('results', []))
 
     @overload
     def _get_ytm_response(
@@ -108,6 +129,7 @@ class YouTubeMusicClient:
     @overload
     def _get_ytm_response(self, youtube_id: str, type_: Literal['playlist']) -> dict[str, set[tuple[str, str]]]: ...
 
+    @cache  # noqa: B019 - client is a process singleton; the (self, ...) cache can't leak instances
     @rate_limit(rps=0.2)
     def _get_ytm_response(
         self,
@@ -170,6 +192,22 @@ class YouTubeMusicClient:
         else:
             logger.debug('NoAliasesFound', youtube_id=youtube_id, name=artist_name)
         return artist_name, aliases, can_cache_empty_results
+
+    def get_ytm_id_associated(self, youtube_id: str) -> set[str]:
+        logger.debug('RetrievingAssociatedArtists', youtube_id=youtube_id)
+        with self._cache_ytm_request():
+            response = self._get_ytm_response(youtube_id, type_='profile')
+
+        songs = self._get_artist_songs(response)
+        associated: set[str] = set()
+        for track_artists in songs.values():
+            for _, artist_id in track_artists:
+                if artist_id is not None:
+                    associated.add(artist_id)
+        associated -= {youtube_id}
+        if associated:
+            logger.info('FoundAssociatedArtists', youtube_id=youtube_id, associated_artists=associated)
+        return associated
 
     def _has_song_overlaps(self, known_tracks: set[str], tracks_to_test: set[str]) -> bool:
         if not tracks_to_test:

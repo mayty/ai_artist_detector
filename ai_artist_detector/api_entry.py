@@ -17,8 +17,8 @@ if TYPE_CHECKING:
 
 
 async def record_timing(
-    request: Request,  # pyrefly: ignore [explicit-any]
-    call_next: Callable[[Request], Awaitable[Response]],  # pyrefly: ignore [explicit-any]
+    request: Request,
+    call_next: Callable[[Request], Awaitable[Response]],
 ) -> Response:
     start = perf_counter()
     response = await call_next(request)

@@ -17,6 +17,7 @@ CONFIG_OVERRIDE_PATH = CONFIG_PATH.parent / 'local.overrides.yaml'
 
 class ArtistStatuses(StrEnum):
     AI = auto()
+    ASSOCIATED = auto()
     HUMAN = auto()
     UNKNOWN = auto()
 
@@ -44,6 +45,7 @@ class MetricName(StrEnum):
     ARTIST_IDS_REQUESTED_TOTAL = auto()
     ARTIST_IDS_CHECKED_AI_TOTAL = auto()
     AI_ARTISTS_IN_DB = auto()
+    ASSOCIATED_ARTISTS_IN_DB = auto()
     INGESTION_RUN_DURATION_SECONDS = auto()
     INGESTION_LAST_RUN_TIMESTAMP_SECONDS = auto()
     INGESTION_ARTISTS_CACHED = auto()

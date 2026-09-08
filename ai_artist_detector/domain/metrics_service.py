@@ -34,6 +34,7 @@ class IngestionRunStats(BaseModel):
 
 class MetricsSnapshot(BaseModel):
     verdicts_ai_count: int | None = None
+    verdicts_associated_count: int | None = None
     last_run: IngestionRunStats | None = None
 
 
@@ -75,6 +76,11 @@ class MetricsService:
             name: Gauge(name, desc, labels, registry=self.registry)
             for name, desc, labels in (
                 (MetricName.AI_ARTISTS_IN_DB, 'Number of AI artists in the verdicts database', NO_LABELS),
+                (
+                    MetricName.ASSOCIATED_ARTISTS_IN_DB,
+                    'Number of associated artists in the verdicts database',
+                    NO_LABELS,
+                ),
                 (
                     MetricName.INGESTION_RUN_DURATION_SECONDS,
                     'Duration of the last ingestion run in seconds',
@@ -158,6 +164,11 @@ class MetricsService:
             self._gauges[MetricName.AI_ARTISTS_IN_DB].set(snapshot.verdicts_ai_count)
         else:
             self._gauges[MetricName.AI_ARTISTS_IN_DB].set(float('nan'))
+
+        if snapshot.verdicts_associated_count is not None:
+            self._gauges[MetricName.ASSOCIATED_ARTISTS_IN_DB].set(snapshot.verdicts_associated_count)
+        else:
+            self._gauges[MetricName.ASSOCIATED_ARTISTS_IN_DB].set(float('nan'))
 
         if snapshot.last_run is not None:
             run = snapshot.last_run
